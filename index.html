@@ -2,9 +2,69 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>
     <title>Title</title>
+
+
+
+    <style>
+        body {
+            font-family: "avenir next", Arial, sans-serif;
+            font-size: 12px;
+            color: #696969;
+        }
+
+        #sections {
+            position: relative;
+            display: inline-block;
+            /*width: 200px;*/
+            top: 0px;
+            z-index: 90;
+        }
+
+        .step {
+            margin-bottom: 400px;
+        }
+
+        #vis {
+            display: inline-block;
+            position: fixed;
+            top: 60px;
+            z-index: 1;
+            margin-left: 0;
+
+            height: 600px;
+            /*width: 940px;*/
+            background-color: #ddd;
+        }
+
+    </style>
 </head>
 <body>
+
+<div class="container-fluid">
+    <div id='graphic' class="w-25">
+        <div id='sections' class="w-100">
+            <section class="step">
+                <div class="title">World Travel Title</div>
+                This is the first section title
+            </section>
+            <section class="step">
+                This is the second section
+            </section>
+            <section class="step">
+                This is the third section
+            </section>
+        </div>
+        <div id='vis' class="w-75">
+        </div>
+    </div>
+</div>
+
+<script src="src/scroller.js"></script>
+<script src="src/main.js"></script>
 
 </body>
 </html>
