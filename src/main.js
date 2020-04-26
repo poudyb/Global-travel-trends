@@ -87,6 +87,10 @@ var scrollVis = function () {
             return d + ' min';
         });
 
+    var radius = d3.scaleSqrt()
+        .domain([0, 1.5e8])
+        .range([0, 40]);
+
     // When scrolling to a new section
     // the activation function for that
     // section is called.
@@ -97,6 +101,7 @@ var scrollVis = function () {
     // progress through the section.
     var updateFunctions = [];
 
+    var tourism = null;
     /**
      * chart
      *
@@ -107,9 +112,10 @@ var scrollVis = function () {
     var chart = function (selection) {
         selection.each(function (rawData) {
             var worldData = rawData[0];
-            var tourism = rawData[1];
+            tourism = rawData[1];
 
             console.log(tourism);
+            tourism
 
             // create svg and give it a width and height
             svg = d3.select(this).selectAll('svg').data([worldData]);
@@ -125,7 +131,8 @@ var scrollVis = function () {
             // this group element will be used to contain all
             // other elements.
             g = svg.select('g')
-                .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+                // .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+                .attr('transform', 'translate(50,30)');
 
             // // perform some preprocessing on raw data
             // var wordData = getWords(rawData);
@@ -150,7 +157,7 @@ var scrollVis = function () {
             // });
             // yHistScale.domain([0, histMax]);
 
-            setupVis(worldData);
+            setupVis(worldData, tourism);
 
             setupSections();
         });
@@ -166,24 +173,25 @@ var scrollVis = function () {
      *  element for each filler word type.
      * @param histData - binned histogram data
      */
-    var setupVis = function (worldData) {
+    var setupVis = function (worldData, tourism) {
         // map
         projection = d3.geoNaturalEarth1().scale(200);
         var path = d3.geoPath(projection);
-
         var countries = topojson.feature(worldData, worldData.objects.countries).features;
 
-        console.log(countries);
+        var initialYear = tourism.filter(d => d.year === '1995');
+        var initialYearMap = new Map(initialYear.map(d => [d.country_id, d.inbound]));
+
         g.append('g')
             .attr('class', 'map')
             .attr('id', 'land')
             .selectAll('path')
             .data(countries)
             .join('path')
-                .attr("fill", "#cccccc")
-                .attr("d", path)
+            .attr("fill", "#cccccc")
+            .attr("d", path)
             .append('title')
-                .text(d => d.properties.name);
+            .text(d => d.properties.name);
 
         g.append('g')
             .attr('class', 'map')
@@ -201,150 +209,153 @@ var scrollVis = function () {
             .data(countries)
             .join('circle')
             .attr('transform', d => `translate(${path.centroid(d)})`)
-            .attr('r', 5)
+            .attr('stroke', '#253494')
+            .attr('fill', '#41b6c4')
+            .attr('opacity', '0.5')
+            .attr('r', d => radius(parseFloat(initialYearMap.get(d.id))))
 
-    //
-    //     // axis
-    //     g.append('g')
-    //         .attr('class', 'x axis')
-    //         .attr('transform', 'translate(0,' + height + ')')
-    //         .call(xAxisBar);
-    //     g.select('.x.axis').style('opacity', 0);
-    //
-    //     // count openvis title
-    //     g.append('text')
-    //         .attr('class', 'title openvis-title')
-    //         .attr('x', width / 2)
-    //         .attr('y', height / 3)
-    //         .text('2013');
-    //
-    //     g.append('text')
-    //         .attr('class', 'sub-title openvis-title')
-    //         .attr('x', width / 2)
-    //         .attr('y', (height / 3) + (height / 5))
-    //         .text('OpenVis Conf');
-    //
-    //     g.selectAll('.openvis-title')
-    //         .attr('opacity', 0);
-    //
-    //     // count filler word count title
-    //     g.append('text')
-    //         .attr('class', 'title count-title highlight')
-    //         .attr('x', width / 2)
-    //         .attr('y', height / 3)
-    //         .text('180');
-    //
-    //     g.append('text')
-    //         .attr('class', 'sub-title count-title')
-    //         .attr('x', width / 2)
-    //         .attr('y', (height / 3) + (height / 5))
-    //         .text('Filler Words');
-    //
-    //     g.selectAll('.count-title')
-    //         .attr('opacity', 0);
-    //
-    //     // square grid
-    //     // @v4 Using .merge here to ensure
-    //     // new and old data have same attrs applied
-    //     var squares = g.selectAll('.square').data(wordData, function (d) {
-    //         return d.word;
-    //     });
-    //     var squaresE = squares.enter()
-    //         .append('rect')
-    //         .classed('square', true);
-    //     squares = squares.merge(squaresE)
-    //         .attr('width', squareSize)
-    //         .attr('height', squareSize)
-    //         .attr('fill', '#fff')
-    //         .classed('fill-square', function (d) {
-    //             return d.filler;
-    //         })
-    //         .attr('x', function (d) {
-    //             return d.x;
-    //         })
-    //         .attr('y', function (d) {
-    //             return d.y;
-    //         })
-    //         .attr('opacity', 0);
-    //
-    //     // barchart
-    //     // @v4 Using .merge here to ensure
-    //     // new and old data have same attrs applied
-    //     var bars = g.selectAll('.bar').data(fillerCounts);
-    //     var barsE = bars.enter()
-    //         .append('rect')
-    //         .attr('class', 'bar');
-    //     bars = bars.merge(barsE)
-    //         .attr('x', 0)
-    //         .attr('y', function (d, i) {
-    //             return yBarScale(i);
-    //         })
-    //         .attr('fill', function (d, i) {
-    //             return barColors[i];
-    //         })
-    //         .attr('width', 0)
-    //         .attr('height', yBarScale.bandwidth());
-    //
-    //     var barText = g.selectAll('.bar-text').data(fillerCounts);
-    //     barText.enter()
-    //         .append('text')
-    //         .attr('class', 'bar-text')
-    //         .text(function (d) {
-    //             return d.key + '…';
-    //         })
-    //         .attr('x', 0)
-    //         .attr('dx', 15)
-    //         .attr('y', function (d, i) {
-    //             return yBarScale(i);
-    //         })
-    //         .attr('dy', yBarScale.bandwidth() / 1.2)
-    //         .style('font-size', '110px')
-    //         .attr('fill', 'white')
-    //         .attr('opacity', 0);
-    //
-    //     // histogram
-    //     // @v4 Using .merge here to ensure
-    //     // new and old data have same attrs applied
-    //     var hist = g.selectAll('.hist').data(histData);
-    //     var histE = hist.enter().append('rect')
-    //         .attr('class', 'hist');
-    //     hist = hist.merge(histE).attr('x', function (d) {
-    //         return xHistScale(d.x0);
-    //     })
-    //         .attr('y', height)
-    //         .attr('height', 0)
-    //         .attr('width', xHistScale(histData[0].x1) - xHistScale(histData[0].x0) - 1)
-    //         .attr('fill', barColors[0])
-    //         .attr('opacity', 0);
-    //
-    //     // cough title
-    //     g.append('text')
-    //         .attr('class', 'sub-title cough cough-title')
-    //         .attr('x', width / 2)
-    //         .attr('y', 60)
-    //         .text('cough')
-    //         .attr('opacity', 0);
-    //
-    //     // arrowhead from
-    //     // http://logogin.blogspot.com/2013/02/d3js-arrowhead-markers.html
-    //     svg.append('defs').append('marker')
-    //         .attr('id', 'arrowhead')
-    //         .attr('refY', 2)
-    //         .attr('markerWidth', 6)
-    //         .attr('markerHeight', 4)
-    //         .attr('orient', 'auto')
-    //         .append('path')
-    //         .attr('d', 'M 0,0 V 4 L6,2 Z');
-    //
-    //     g.append('path')
-    //         .attr('class', 'cough cough-arrow')
-    //         .attr('marker-end', 'url(#arrowhead)')
-    //         .attr('d', function () {
-    //             var line = 'M ' + ((width / 2) - 10) + ' ' + 80;
-    //             line += ' l 0 ' + 230;
-    //             return line;
-    //         })
-    //         .attr('opacity', 0);
+        //
+        //     // axis
+        //     g.append('g')
+        //         .attr('class', 'x axis')
+        //         .attr('transform', 'translate(0,' + height + ')')
+        //         .call(xAxisBar);
+        //     g.select('.x.axis').style('opacity', 0);
+        //
+        //     // count openvis title
+        //     g.append('text')
+        //         .attr('class', 'title openvis-title')
+        //         .attr('x', width / 2)
+        //         .attr('y', height / 3)
+        //         .text('2013');
+        //
+        //     g.append('text')
+        //         .attr('class', 'sub-title openvis-title')
+        //         .attr('x', width / 2)
+        //         .attr('y', (height / 3) + (height / 5))
+        //         .text('OpenVis Conf');
+        //
+        //     g.selectAll('.openvis-title')
+        //         .attr('opacity', 0);
+        //
+        //     // count filler word count title
+        //     g.append('text')
+        //         .attr('class', 'title count-title highlight')
+        //         .attr('x', width / 2)
+        //         .attr('y', height / 3)
+        //         .text('180');
+        //
+        //     g.append('text')
+        //         .attr('class', 'sub-title count-title')
+        //         .attr('x', width / 2)
+        //         .attr('y', (height / 3) + (height / 5))
+        //         .text('Filler Words');
+        //
+        //     g.selectAll('.count-title')
+        //         .attr('opacity', 0);
+        //
+        //     // square grid
+        //     // @v4 Using .merge here to ensure
+        //     // new and old data have same attrs applied
+        //     var squares = g.selectAll('.square').data(wordData, function (d) {
+        //         return d.word;
+        //     });
+        //     var squaresE = squares.enter()
+        //         .append('rect')
+        //         .classed('square', true);
+        //     squares = squares.merge(squaresE)
+        //         .attr('width', squareSize)
+        //         .attr('height', squareSize)
+        //         .attr('fill', '#fff')
+        //         .classed('fill-square', function (d) {
+        //             return d.filler;
+        //         })
+        //         .attr('x', function (d) {
+        //             return d.x;
+        //         })
+        //         .attr('y', function (d) {
+        //             return d.y;
+        //         })
+        //         .attr('opacity', 0);
+        //
+        //     // barchart
+        //     // @v4 Using .merge here to ensure
+        //     // new and old data have same attrs applied
+        //     var bars = g.selectAll('.bar').data(fillerCounts);
+        //     var barsE = bars.enter()
+        //         .append('rect')
+        //         .attr('class', 'bar');
+        //     bars = bars.merge(barsE)
+        //         .attr('x', 0)
+        //         .attr('y', function (d, i) {
+        //             return yBarScale(i);
+        //         })
+        //         .attr('fill', function (d, i) {
+        //             return barColors[i];
+        //         })
+        //         .attr('width', 0)
+        //         .attr('height', yBarScale.bandwidth());
+        //
+        //     var barText = g.selectAll('.bar-text').data(fillerCounts);
+        //     barText.enter()
+        //         .append('text')
+        //         .attr('class', 'bar-text')
+        //         .text(function (d) {
+        //             return d.key + '…';
+        //         })
+        //         .attr('x', 0)
+        //         .attr('dx', 15)
+        //         .attr('y', function (d, i) {
+        //             return yBarScale(i);
+        //         })
+        //         .attr('dy', yBarScale.bandwidth() / 1.2)
+        //         .style('font-size', '110px')
+        //         .attr('fill', 'white')
+        //         .attr('opacity', 0);
+        //
+        //     // histogram
+        //     // @v4 Using .merge here to ensure
+        //     // new and old data have same attrs applied
+        //     var hist = g.selectAll('.hist').data(histData);
+        //     var histE = hist.enter().append('rect')
+        //         .attr('class', 'hist');
+        //     hist = hist.merge(histE).attr('x', function (d) {
+        //         return xHistScale(d.x0);
+        //     })
+        //         .attr('y', height)
+        //         .attr('height', 0)
+        //         .attr('width', xHistScale(histData[0].x1) - xHistScale(histData[0].x0) - 1)
+        //         .attr('fill', barColors[0])
+        //         .attr('opacity', 0);
+        //
+        //     // cough title
+        //     g.append('text')
+        //         .attr('class', 'sub-title cough cough-title')
+        //         .attr('x', width / 2)
+        //         .attr('y', 60)
+        //         .text('cough')
+        //         .attr('opacity', 0);
+        //
+        //     // arrowhead from
+        //     // http://logogin.blogspot.com/2013/02/d3js-arrowhead-markers.html
+        //     svg.append('defs').append('marker')
+        //         .attr('id', 'arrowhead')
+        //         .attr('refY', 2)
+        //         .attr('markerWidth', 6)
+        //         .attr('markerHeight', 4)
+        //         .attr('orient', 'auto')
+        //         .append('path')
+        //         .attr('d', 'M 0,0 V 4 L6,2 Z');
+        //
+        //     g.append('path')
+        //         .attr('class', 'cough cough-arrow')
+        //         .attr('marker-end', 'url(#arrowhead)')
+        //         .attr('d', function () {
+        //             var line = 'M ' + ((width / 2) - 10) + ' ' + 80;
+        //             line += ' l 0 ' + 230;
+        //             return line;
+        //         })
+        //         .attr('opacity', 0);
     };
 
     /**
@@ -376,7 +387,8 @@ var scrollVis = function () {
         // for all scrolling and so are set to
         // no-op functions.
         for (var i = 0; i < 9; i++) {
-            updateFunctions[i] = function () {};
+            updateFunctions[i] = function () {
+            };
         }
         updateFunctions[7] = updateCough;
     };
@@ -438,19 +450,18 @@ var scrollVis = function () {
     function showFillerTitle() {
         // svg.attr('width', width / 2)
         //     .attr('height', height / 2);
-
         g.selectAll('.circles')
             .transition()
             .duration(800)
             .attr('opacity', 1);
 
-        g.selectAll('.map')
-            .transition()
-            .duration(1600)
-            .selectAll('path')
-            .attr("fill", "#cccccc")
-            .attrTween("d", d3.geoPath(projection.rotate([100, 0])));
-
+        // g.selectAll('.map')
+        //     .transition()
+        //     .duration(1600)
+        //     .selectAll('path')
+        //     .attr("fill", "#cccccc")
+        //     .attrTween("d", d3.geoPath(projection.rotate([100, 0])));
+        //
 
         g.selectAll('.openvis-title')
             .transition()
@@ -477,6 +488,29 @@ var scrollVis = function () {
      *
      */
     function showGrid() {
+        var year = 1995;
+        var timer = setInterval(() => {
+            year += 1;
+            if (year === 2018) {
+                clearInterval(timer)
+            }
+            var yearData = tourism.filter(d => d.year === year.toString());
+            console.log(yearData);
+            var yearMap = new Map(yearData.map(d => [d.country_id, d.inbound]));
+            console.log("year", year, year.toString());
+            console.log(yearMap);
+
+            console.log("circles");
+            console.log(g.selectAll('.circles'));
+            g.selectAll('.circles')
+                .selectAll('circle')
+                .transition()
+                .duration(300)
+                .attr('r', d => radius(parseFloat(yearMap.get(d.id))));
+        }, 300);
+        // d3.select('#clock').html(attributeArray[currentAttribute]);  // update the clock
+
+
         g.selectAll('.count-title')
             .transition()
             .duration(0)
