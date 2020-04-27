@@ -11,6 +11,7 @@ var scrollVis = function () {
     var height = 600;
     var margin = {top: 0, left: 0, bottom: 40, right: 10};
 
+    var chartMargin = {top: 70, left: 70, bottom: 70, right: 70};
     // Keep track of which visualization
     // we are on and which was the last
     // index activated. When user scrolls
@@ -32,6 +33,15 @@ var scrollVis = function () {
     var g = null;
 
     var projection = null;
+
+
+    var xAreaScale = d3.scaleLinear()
+        .domain([1995, 2018])
+        .range([chartMargin.left, width - chartMargin.right]);
+
+    var yAreaScale = d3.scaleLinear()
+        .domain([0, 8e8])
+        .range([height - chartMargin.bottom, chartMargin.top]);
 
     // We will set the domain when the
     // data is processed.
@@ -102,6 +112,7 @@ var scrollVis = function () {
     var updateFunctions = [];
 
     var tourism = null;
+    var inboundPivot = null;
     /**
      * chart
      *
@@ -112,10 +123,14 @@ var scrollVis = function () {
     var chart = function (selection) {
         selection.each(function (rawData) {
             var worldData = rawData[0];
-            tourism = rawData[1];
+            tourism = d3.rollup(
+                rawData[1],
+                d => d[0].inbound,
+                d => d.year,
+                d => d.country_id
+            );
 
-            console.log(tourism);
-            tourism
+            inboundPivot = rawData[2];
 
             // create svg and give it a width and height
             svg = d3.select(this).selectAll('svg').data([worldData]);
@@ -157,7 +172,7 @@ var scrollVis = function () {
             // });
             // yHistScale.domain([0, histMax]);
 
-            setupVis(worldData, tourism);
+            setupVis(worldData, tourism, inboundPivot);
 
             setupSections();
         });
@@ -168,22 +183,18 @@ var scrollVis = function () {
      * setupVis - creates initial elements for all
      * sections of the visualization.
      *
-     * @param wordData - data object for each word.
-     * @param fillerCounts - nested data that includes
-     *  element for each filler word type.
-     * @param histData - binned histogram data
+     * @param worldData
+     * @param tourism
+     * @param inboundPivot
      */
-    var setupVis = function (worldData, tourism) {
+    var setupVis = function (worldData, tourism, inboundPivot) {
         // map
         projection = d3.geoNaturalEarth1().scale(200);
         var path = d3.geoPath(projection);
         var countries = topojson.feature(worldData, worldData.objects.countries).features;
 
-        var initialYear = tourism.filter(d => d.year === '1995');
-        var initialYearMap = new Map(initialYear.map(d => [d.country_id, d.inbound]));
-
         g.append('g')
-            .attr('class', 'map')
+            .attr('class', 'map geography')
             .attr('id', 'land')
             .selectAll('path')
             .data(countries)
@@ -194,7 +205,7 @@ var scrollVis = function () {
             .text(d => d.properties.name);
 
         g.append('g')
-            .attr('class', 'map')
+            .attr('class', 'map geography')
             .attr('id', 'borders')
             .append("path")
             .datum(topojson.mesh(worldData, worldData.objects.countries, (a, b) => a !== b))
@@ -204,7 +215,7 @@ var scrollVis = function () {
             .attr("d", path);
 
         g.append('g')
-            .attr('class', 'circles')
+            .attr('class', 'map circles')
             .selectAll('circle')
             .data(countries)
             .join('circle')
@@ -212,7 +223,60 @@ var scrollVis = function () {
             .attr('stroke', '#253494')
             .attr('fill', '#41b6c4')
             .attr('opacity', '0.5')
-            .attr('r', d => radius(parseFloat(initialYearMap.get(d.id))))
+            .attr('r', d => radius(parseFloat(tourism.get("1995").get(d.id))))
+
+
+        areaCountries = [
+            'France',
+            'Spain',
+            'United States',
+            'China',
+            'Italy',
+            'Turkey',
+            'Mexico',
+            'Germany',
+            'Thailand',
+            'United Kingdom',
+            'Japan',
+            'Austria',
+            'Greece',
+            'Hong Kong SAR, China',
+            'Malaysia',
+            'Russian Federation',
+            'United Arab Emirates',
+            'Canada'];
+
+
+        console.log(inboundPivot);
+        var stacked = d3.stack()
+            .keys(areaCountries)
+            .order(d3.stackOrderAscending)
+            (inboundPivot);
+        console.log("stack");
+        console.log(stacked);
+
+        var area = d3.area()
+            .x(d => xAreaScale(parseInt(d.data.year)))
+            .y0(d => yAreaScale(d[0]))
+            .y1(d => yAreaScale(d[1]));
+
+        g.append('g')
+            .attr('class', 'area-chart')
+            .attr('opacity', 0)
+            .selectAll('path')
+            .data(stacked)
+            .join('path')
+            .attr('fill', '#555555')
+            .attr('d', area)
+
+        area = g.selectAll('.area-chart');
+        area.append('g')
+            .attr('transform', `translate(0, ${height - chartMargin.bottom})`)
+            .call(d3.axisBottom(xAreaScale).tickFormat(d3.format("d")));
+
+        area.append('g')
+            .attr('transform', `translate(${chartMargin.left}, 0)`)
+            .call(d3.axisLeft(yAreaScale).tickFormat(d3.format(".2s")));
 
         //
         //     // axis
@@ -369,10 +433,10 @@ var scrollVis = function () {
         // activateFunctions are called each
         // time the active section changes
         activateFunctions = [
-            showTitle,
-            showFillerTitle,
-            showGrid,
-            highlightGrid,
+            showMap,
+            showInitialTourism,
+            animateTourism,
+            showAreaChart,
             showBar,
             showHistPart,
             showHistAll,
@@ -409,16 +473,15 @@ var scrollVis = function () {
      */
 
     /**
-     * showTitle - initial title
+     * showMap - initial title
      *
      * hides: count title
      * (no previous step to hide)
      * shows: intro title
      *
      */
-    function showTitle() {
-        console.log(g.selectAll('.map'));
-        g.selectAll('.map')
+    function showMap() {
+        g.selectAll('.geography')
             .transition()
             .duration(0)
             .attr('opacity', 1.0);
@@ -440,14 +503,14 @@ var scrollVis = function () {
     }
 
     /**
-     * showFillerTitle - filler counts
+     * showInitialTourism - filler counts
      *
      * hides: intro title
      * hides: square grid
      * shows: filler count title
      *
      */
-    function showFillerTitle() {
+    function showInitialTourism() {
         // svg.attr('width', width / 2)
         //     .attr('height', height / 2);
         g.selectAll('.circles')
@@ -480,36 +543,35 @@ var scrollVis = function () {
     }
 
     /**
-     * showGrid - square grid
+     * animateTourism - square grid
      *
      * hides: filler count title
      * hides: filler highlight in grid
      * shows: square grid
      *
      */
-    function showGrid() {
+    function animateTourism() {
         var year = 1995;
         var timer = setInterval(() => {
             year += 1;
             if (year === 2018) {
                 clearInterval(timer)
             }
-            var yearData = tourism.filter(d => d.year === year.toString());
-            console.log(yearData);
-            var yearMap = new Map(yearData.map(d => [d.country_id, d.inbound]));
-            console.log("year", year, year.toString());
-            console.log(yearMap);
+            var yearData = tourism.get(year.toString());
 
-            console.log("circles");
-            console.log(g.selectAll('.circles'));
             g.selectAll('.circles')
                 .selectAll('circle')
                 .transition()
-                .duration(300)
-                .attr('r', d => radius(parseFloat(yearMap.get(d.id))));
-        }, 300);
+                .duration(200)
+                .ease(d3.easeLinear)
+                .attr('r', d => radius(yearData.get(d.id)));
+        }, 200);
         // d3.select('#clock').html(attributeArray[currentAttribute]);  // update the clock
 
+        g.selectAll('.area-chart')
+            .transition()
+            .duration(0)
+            .attr('opacity', 0);
 
         g.selectAll('.count-title')
             .transition()
@@ -527,14 +589,24 @@ var scrollVis = function () {
     }
 
     /**
-     * highlightGrid - show fillers in grid
+     * showAreaChart - show fillers in grid
      *
      * hides: barchart, text and axis
      * shows: square grid and highlighted
      *  filler words. also ensures squares
      *  are moved back to their place in the grid
      */
-    function highlightGrid() {
+    function showAreaChart() {
+        g.selectAll('.area-chart')
+            .transition()
+            .duration(600)
+            .attr('opacity', 1);
+
+        g.selectAll('.map')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0.3);
+
         hideAxis();
         g.selectAll('.bar')
             .transition()
@@ -967,6 +1039,7 @@ function display(data) {
 
 var promises = [
     d3.json('data/countries-50m.json'),
-    d3.csv('data/tourism.csv')
+    d3.csv('data/tourism.csv'),
+    d3.csv('data/inbound_pivot.csv')
 ];
 Promise.all(promises).then(display);
