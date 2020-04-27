@@ -2,9 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/topojson.v3.min.js"></script>
+    <script src="https://d3js.org/d3-array.v2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>
     <title>Title</title>
+
+
+    <style>
+        body {
+            font-family: "helvetica neue", Helvetica, sans-serif;
+            font-size: 18px;
+            color: #696969;
+        }
+
+        #sections {
+            position: relative;
+            display: inline-block;
+            top: 0px;
+            z-index: 90;
+        }
+
+        .step {
+            margin-bottom: 600px;
+        }
+
+        #vis {
+            display: inline-block;
+            position: fixed;
+            top: 60px;
+            z-index: 1;
+            margin-left: 0;
+
+            height: 600px;
+            /*width: 940px;*/
+            /*background-color: #ddd;*/
+        }
+
+    </style>
 </head>
 <body>
+
+<div class="container-fluid">
+    <div id='graphic' class="w-25">
+        <div id='sections' class="w-100">
+            <section class="step">
+                <div class="title"><h1>World Travel Trends</h1></div>
+                This visualization shows trends in worldwide tourism, as measure by inbound
+                arrivals and outbound departures for tourism purposes.
+            </section>
+            <section class="step">
+                Our data begins in 1995, when worldwide tourism was centralized in Europe
+            </section>
+            <section class="step">
+                Over the past 25 years, we've seen growth in China, Southeast Asia, and Latin
+                America
+            </section>
+            <section class="step">
+                Out of the top 25 tourist destinations, there has been a rapid and steady increase,
+                with notable dips in 2001 after the 9/11 attacks and in the 2008 financial crisis.
+                Why has international tourism increased so rapidly?
+            </section>
+            <section class="step">
+                In South Korea, the government has made a concerted effort to export its culture
+                and attract tourists. Inbound tourism grew 450% from 1995 to 2018.
+            </section>
+            <section class="step">
+                We can see notable impacts of world events and government initiatives in Korea's
+                inbound tourist arrivals.
+            </section>
+        </div>
+        <div id='vis' class="w-75">
+        </div>
+    </div>
+</div>
+
+<script src="src/scroller.js"></script>
+<script src="src/main.js"></script>
 
 </body>
 </html>
