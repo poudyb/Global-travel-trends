@@ -244,16 +244,18 @@ var scrollVis = function () {
             'Malaysia',
             'Russian Federation',
             'United Arab Emirates',
-            'Canada'];
+            'Canada',
+            'Korea, Rep.'];
 
 
-        console.log(inboundPivot);
         var stacked = d3.stack()
             .keys(areaCountries)
             .order(d3.stackOrderAscending)
             (inboundPivot);
-        console.log("stack");
+
         console.log(stacked);
+        console.log(stacked[0][0].data.year);
+        console.log(stacked[0][0].key);
 
         var area = d3.area()
             .x(d => xAreaScale(parseInt(d.data.year)))
@@ -261,22 +263,27 @@ var scrollVis = function () {
             .y1(d => yAreaScale(d[1]));
 
         g.append('g')
-            .attr('class', 'area-chart')
+            .attr('class', 'area-chart area-lines')
             .attr('opacity', 0)
             .selectAll('path')
             .data(stacked)
             .join('path')
-            .attr('fill', '#555555')
-            .attr('d', area)
+            .attr('fill', '#2c7fb8')
+            .attr('opacity', 0.7)
+            .attr('d', area);
 
-        area = g.selectAll('.area-chart');
-        area.append('g')
+        // area = g.selectAll('.area-chart');
+        g.append('g')
+            .attr('class', 'area-chart area-xaxis')
             .attr('transform', `translate(0, ${height - chartMargin.bottom})`)
-            .call(d3.axisBottom(xAreaScale).tickFormat(d3.format("d")));
+            .call(d3.axisBottom(xAreaScale).tickFormat(d3.format("d")))
+            .attr('opacity', 0);
 
-        area.append('g')
+        g.append('g')
+            .attr('class', 'area-chart area-yaxis')
             .attr('transform', `translate(${chartMargin.left}, 0)`)
-            .call(d3.axisLeft(yAreaScale).tickFormat(d3.format(".2s")));
+            .call(d3.axisLeft(yAreaScale).tickFormat(d3.format(".2s")))
+            .attr('opacity', 0);
 
         //
         //     // axis
@@ -437,7 +444,7 @@ var scrollVis = function () {
             showInitialTourism,
             animateTourism,
             showAreaChart,
-            showBar,
+            zoomInAreaChart,
             showHistPart,
             showHistAll,
             showCough,
@@ -570,7 +577,7 @@ var scrollVis = function () {
 
         g.selectAll('.area-chart')
             .transition()
-            .duration(0)
+            .duration(300)
             .attr('opacity', 0);
 
         g.selectAll('.count-title')
@@ -607,100 +614,121 @@ var scrollVis = function () {
             .duration(600)
             .attr('opacity', 0.3);
 
-        hideAxis();
-        g.selectAll('.bar')
-            .transition()
-            .duration(600)
-            .attr('width', 0);
-
-        g.selectAll('.bar-text')
-            .transition()
-            .duration(0)
-            .attr('opacity', 0);
-
-
-        g.selectAll('.square')
-            .transition()
-            .duration(0)
-            .attr('opacity', 1.0)
-            .attr('fill', '#ddd');
-
-        // use named transition to ensure
-        // move happens even if other
-        // transitions are interrupted.
-        g.selectAll('.fill-square')
-            .transition('move-fills')
-            .duration(800)
-            .attr('x', function (d) {
-                return d.x;
-            })
-            .attr('y', function (d) {
-                return d.y;
-            });
-
-        g.selectAll('.fill-square')
-            .transition()
-            .duration(800)
-            .attr('opacity', 1.0)
-            .attr('fill', function (d) {
-                return d.filler ? '#008080' : '#ddd';
-            });
+        // hideAxis();
+        // g.selectAll('.bar')
+        //     .transition()
+        //     .duration(600)
+        //     .attr('width', 0);
+        //
+        // g.selectAll('.bar-text')
+        //     .transition()
+        //     .duration(0)
+        //     .attr('opacity', 0);
+        //
+        //
+        // g.selectAll('.square')
+        //     .transition()
+        //     .duration(0)
+        //     .attr('opacity', 1.0)
+        //     .attr('fill', '#ddd');
+        //
+        // // use named transition to ensure
+        // // move happens even if other
+        // // transitions are interrupted.
+        // g.selectAll('.fill-square')
+        //     .transition('move-fills')
+        //     .duration(800)
+        //     .attr('x', function (d) {
+        //         return d.x;
+        //     })
+        //     .attr('y', function (d) {
+        //         return d.y;
+        //     });
+        //
+        // g.selectAll('.fill-square')
+        //     .transition()
+        //     .duration(800)
+        //     .attr('opacity', 1.0)
+        //     .attr('fill', function (d) {
+        //         return d.filler ? '#008080' : '#ddd';
+        //     });
     }
 
     /**
-     * showBar - barchart
+     * zoomInAreaChart - barchart
      *
      * hides: square grid
      * hides: histogram
      * shows: barchart
      *
      */
-    function showBar() {
+    function zoomInAreaChart() {
         // ensure bar axis is set
         showAxis(xAxisBar);
 
-        g.selectAll('.square')
+        var newArea = d3.area()
+            .x(d => xAreaScale(parseInt(d.data.year)))
+            // .y0((d, i, n) => yAreaScale((n.key === 'Korea, Rep.') ? d[0] - d[0] : 0))
+            .y0(yAreaScale(0))
+            .y1((d, i, n) => yAreaScale((n.key === 'Korea, Rep.') ? d[1] - d[0] : 0));
+
+        g.select('.area-yaxis')
             .transition()
             .duration(800)
-            .attr('opacity', 0);
+            .attr('transform', `translate(${chartMargin.left}, 0)`)
+            .call(d3.axisLeft(yAreaScale.domain([0, 2e7])).tickFormat(d3.format(".2s")));
 
-        g.selectAll('.fill-square')
+        g.selectAll('.area-lines')
+            .selectAll('path')
             .transition()
             .duration(800)
-            .attr('x', 0)
-            .attr('y', function (d, i) {
-                return yBarScale(i % 3) + yBarScale.bandwidth() / 2;
-            })
-            .transition()
-            .duration(0)
-            .attr('opacity', 0);
+            .attr('fill', '#b30000')
+            .attr('d', newArea);
 
-        g.selectAll('.hist')
-            .transition()
-            .duration(600)
-            .attr('height', function () {
-                return 0;
-            })
-            .attr('y', function () {
-                return height;
-            })
-            .style('opacity', 0);
 
-        g.selectAll('.bar')
-            .transition()
-            .delay(function (d, i) {
-                return 300 * (i + 1);
-            })
-            .duration(600)
-            .attr('width', function (d) {
-                return xBarScale(d.value);
-            });
-
-        g.selectAll('.bar-text')
-            .transition()
-            .duration(600)
-            .delay(1200)
-            .attr('opacity', 1);
+        //
+        // g.selectAll('.square')
+        //     .transition()
+        //     .duration(800)
+        //     .attr('opacity', 0);
+        //
+        // g.selectAll('.fill-square')
+        //     .transition()
+        //     .duration(800)
+        //     .attr('x', 0)
+        //     .attr('y', function (d, i) {
+        //         return yBarScale(i % 3) + yBarScale.bandwidth() / 2;
+        //     })
+        //     .transition()
+        //     .duration(0)
+        //     .attr('opacity', 0);
+        //
+        // g.selectAll('.hist')
+        //     .transition()
+        //     .duration(600)
+        //     .attr('height', function () {
+        //         return 0;
+        //     })
+        //     .attr('y', function () {
+        //         return height;
+        //     })
+        //     .style('opacity', 0);
+        //
+        // g.selectAll('.bar')
+        //     .transition()
+        //     .delay(function (d, i) {
+        //         return 300 * (i + 1);
+        //     })
+        //     .duration(600)
+        //     .attr('width', function (d) {
+        //         return xBarScale(d.value);
+        //     });
+        //
+        // g.selectAll('.bar-text')
+        //     .transition()
+        //     .duration(600)
+        //     .delay(1200)
+        //     .attr('opacity', 1);
     }
 
     /**
