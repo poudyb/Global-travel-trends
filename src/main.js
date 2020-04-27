@@ -674,14 +674,14 @@ var scrollVis = function () {
 
         g.select('.area-yaxis')
             .transition()
-            .duration(800)
+            .duration(1200)
             .attr('transform', `translate(${chartMargin.left}, 0)`)
             .call(d3.axisLeft(yAreaScale.domain([0, 2e7])).tickFormat(d3.format(".2s")));
 
         g.selectAll('.area-lines')
             .selectAll('path')
             .transition()
-            .duration(800)
+            .duration(1200)
             .attr('fill', '#b30000')
             .attr('d', newArea);
 
