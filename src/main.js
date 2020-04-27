@@ -113,6 +113,7 @@ var scrollVis = function () {
 
     var tourism = null;
     var inboundPivot = null;
+    var southKorea = null
     /**
      * chart
      *
@@ -130,6 +131,8 @@ var scrollVis = function () {
                 d => d.country_id
             );
 
+            southKorea = rawData[1].filter(d => d.country_code === "KOR");
+            console.log(southKorea);
             inboundPivot = rawData[2];
 
             // create svg and give it a width and height
@@ -223,7 +226,7 @@ var scrollVis = function () {
             .attr('stroke', '#253494')
             .attr('fill', '#41b6c4')
             .attr('opacity', '0.5')
-            .attr('r', d => radius(parseFloat(tourism.get("1995").get(d.id))))
+            .attr('r', d => radius(parseFloat(tourism.get("1995").get(d.id))));
 
 
         areaCountries = [
@@ -253,10 +256,6 @@ var scrollVis = function () {
             .order(d3.stackOrderAscending)
             (inboundPivot);
 
-        console.log(stacked);
-        console.log(stacked[0][0].data.year);
-        console.log(stacked[0][0].key);
-
         var area = d3.area()
             .x(d => xAreaScale(parseInt(d.data.year)))
             .y0(d => yAreaScale(d[0]))
@@ -284,6 +283,9 @@ var scrollVis = function () {
             .attr('transform', `translate(${chartMargin.left}, 0)`)
             .call(d3.axisLeft(yAreaScale).tickFormat(d3.format(".2s")))
             .attr('opacity', 0);
+
+        g.append('g')
+            .attr('class', 'south-korea')
 
         //
         //     // axis
@@ -445,7 +447,7 @@ var scrollVis = function () {
             animateTourism,
             showAreaChart,
             zoomInAreaChart,
-            showHistPart,
+            southKoreaStory,
             showHistAll,
             showCough,
             showHistAll
@@ -732,7 +734,7 @@ var scrollVis = function () {
     }
 
     /**
-     * showHistPart - shows the first part
+     * southKoreaStory - shows the first part
      *  of the histogram of filler words
      *
      * hides: barchart
@@ -740,34 +742,168 @@ var scrollVis = function () {
      * shows: first half of histogram
      *
      */
-    function showHistPart() {
-        // switch the axis to histogram one
-        showAxis(xAxisHist);
-
-        g.selectAll('.bar-text')
+    function southKoreaStory() {
+        g.selectAll('.area-chart,.map')
             .transition()
-            .duration(0)
+            .duration(600)
             .attr('opacity', 0);
 
-        g.selectAll('.bar')
-            .transition()
-            .duration(600)
-            .attr('width', 0);
+        var svgGroup = g.selectAll('.south-korea');
 
-        // here we only show a bar if
-        // it is before the 15 minute mark
-        g.selectAll('.hist')
-            .transition()
-            .duration(600)
-            .attr('y', function (d) {
-                return (d.x0 < 15) ? yHistScale(d.length) : height;
+        const tooltipDuration = 100;
+        var tooltip = d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .style("z-index", "15")
+            .style("visibility", "hidden")
+            .style("background", "#eeeeee")
+            .style('padding', '20px')
+            .style('border', '2px solid grey')
+            .style('border-radius', '5px')
+            .style('font-size', '0.8em')
+            .style('text-align', 'center')
+
+        const specialYrs = ['1997', '1998', '2003', '2015', '2017', '2018'];
+        const specialInfo = {
+            '1997': "1997: SE/E Asia financial crisis; Korea receives $55B bailout from international agencies",
+            '1998': '1998: Korea begins investing in "soft power" and cultural exports; funds Culture of Ministry and Tourism',
+            '2003': "2003: N. Korea withdrawal from nuclear disarmament treaty; heightened tensions on the Korean peninsula",
+            '2015': "2015: MERS outbreak causes massive disruption from May-Dec",
+            '2017': "2017: Chinese ban on group travel to Korea",
+            '2018': "2018: PyeongChang Winter Olympics in Korea; continued partial travel ban from China through Aug"
+        };
+
+        var dataToDisplayOnMouseOver = {};
+        southKorea.forEach(d => {
+            if (specialYrs.indexOf(d.year) >= 0) {
+                dataToDisplayOnMouseOver[d.year] = specialInfo[d.year];
+            } else {
+                dataToDisplayOnMouseOver[d.year] = d.year;
+            }
+        });
+
+        var x = d3.scaleTime().range([chartMargin.left, width - chartMargin.right]);
+        var y = d3.scaleLinear().range([height - chartMargin.bottom, chartMargin.top]);
+
+        var line = d3.line()
+            .x(d => x(d.year))
+            .y(d => y(d.inbound))
+            .curve(d3.curveNatural);
+
+        // Scale the range of the data
+        x.domain(d3.extent(southKorea, d => d.year));
+        max_visitors = d3.max(southKorea, d => d.inbound);
+        y.domain([0, 2e7]); // round up to nearest million for a clean y-axis
+
+
+        // Add the line
+        svgGroup.append("path")
+            .data([southKorea])
+            .style('stroke', "blue")
+            .style("fill", "none")
+            .attr("d", line);
+
+        // Appends a circle for each datapoint
+        svgGroup.selectAll(".dot")
+            .data(southKorea)
+            .enter().append("circle") // Uses the enter().append() method
+            .attr("class", "dot") // Assign a class for styling
+            .attr("cx", function (d) {
+                return x(d.year)
             })
-            .attr('height', function (d) {
-                return (d.x0 < 15) ? height - yHistScale(d.length) : 0;
+            .attr("cy", function (d) {
+                return y(d.inbound)
             })
-            .style('opacity', function (d) {
-                return (d.x0 < 15) ? 1.0 : 1e-6;
+            .attr("r", function (d) {
+                if (specialYrs.indexOf(d.year) >= 0) {
+                    return 5;
+                } else {
+                    return 2.5;
+                }
+
+            }) // make dots for 'special years' larger (will re-color next) to direct the readers' attention
+            .style("fill", function (d) {
+                if (specialYrs.indexOf(d.year) >= 0) {
+                    return "red";
+                } else {
+                    return "blue";
+                }
+
+            }) // make dots for 'special years' red to direct the readers' attention
+            .on("mouseover", function (d) {
+                dataToDisplay = dataToDisplayOnMouseOver[d.year];
+                tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
+                    + "<br />" + 'International Visitors: ' + d.inbound.toLocaleString()); // show the year, any special information, & the # int'l visitors
+                return tooltip.transition().duration(tooltipDuration)
+                    .style("visibility", "visible")
+                    .style("top", (d3.event.pageY - 10) + "px")
+                    .style("left", (d3.event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                return tooltip.style("visibility", "hidden");
             });
+
+        // Add the X Axis
+        svgGroup.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height - chartMargin.bottom})`)
+            .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.4em")
+            .attr("dy", ".15em");
+
+        // Add the Y Axis
+        svgGroup.append("g")
+            .attr("class", "axis")
+            .attr('transform', `translate(${chartMargin.left}, 0)`)
+            .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+
+        /* Add 'curtain' rectangle to hide entire graph */
+        var curtain = svg.append('rect')
+            .attr('x', -1 * width)
+            .attr('y', -1 * height)
+            .attr('height', height + 5)
+            .attr('width', width - 5)
+            .attr('class', 'curtain')
+            .attr('transform', 'rotate(180)')
+            .style('fill', '#ffffff')
+
+        /* Creating a transition of the curtain to give an animation impression */
+        curtain.transition()
+            .duration(6000)
+            .ease(d3.easeLinear)
+            .attr('x', -2 * width);
+
+
+        // // switch the axis to histogram one
+        // showAxis(xAxisHist);
+        //
+        // g.selectAll('.bar-text')
+        //     .transition()
+        //     .duration(0)
+        //     .attr('opacity', 0);
+        //
+        // g.selectAll('.bar')
+        //     .transition()
+        //     .duration(600)
+        //     .attr('width', 0);
+        //
+        // // here we only show a bar if
+        // // it is before the 15 minute mark
+        // g.selectAll('.hist')
+        //     .transition()
+        //     .duration(600)
+        //     .attr('y', function (d) {
+        //         return (d.x0 < 15) ? yHistScale(d.length) : height;
+        //     })
+        //     .attr('height', function (d) {
+        //         return (d.x0 < 15) ? height - yHistScale(d.length) : 0;
+        //     })
+        //     .style('opacity', function (d) {
+        //         return (d.x0 < 15) ? 1.0 : 1e-6;
+        //     });
     }
 
     /**
