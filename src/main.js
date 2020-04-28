@@ -114,6 +114,7 @@ var scrollVis = function () {
     var tourism = null;
     var inboundPivot = null;
     var southKorea = null
+    var usa = null;
     /**
      * chart
      *
@@ -133,6 +134,10 @@ var scrollVis = function () {
 
             southKorea = rawData[1].filter(d => d.country_code === "KOR");
             console.log(southKorea);
+
+            usa = rawData[1].filter(d => d.country_code === "USA");
+            console.log(usa);
+
             inboundPivot = rawData[2];
 
             // create svg and give it a width and height
@@ -286,6 +291,9 @@ var scrollVis = function () {
 
         g.append('g')
             .attr('class', 'south-korea')
+
+        g.append('g')
+            .attr('class', 'usa')
 
         //
         //     // axis
@@ -448,6 +456,7 @@ var scrollVis = function () {
             showAreaChart,
             zoomInAreaChart,
             southKoreaStory,
+            usaStory,
             showHistAll,
             showCough,
             showHistAll
@@ -904,6 +913,146 @@ var scrollVis = function () {
         //     .style('opacity', function (d) {
         //         return (d.x0 < 15) ? 1.0 : 1e-6;
         //     });
+    }
+
+    /**
+     * usaStory - presents the inbound travel patterns
+     * in the past 25 years
+     *
+     */
+    function usaStory() {
+        g.selectAll('.area-chart,.map,.south-korea')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0);
+
+        var svgGroup = g.selectAll('.usa');
+
+        const tooltipDuration = 100;
+        var tooltip = d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .style("z-index", "15")
+            .style("visibility", "hidden")
+            .style("background", "#eeeeee")
+            .style('padding', '20px')
+            .style('border', '2px solid grey')
+            .style('border-radius', '5px')
+            .style('font-size', '0.8em')
+            .style('text-align', 'center')
+
+        specialYrs = ['1997','2001','2003','2008','2009'];
+        specialInfo = {
+            '1997':"1997: Congress stopped funding for U.S. Travel and Tourism Advisory Board (USTTAB) that promoted US Tourism",
+            '2001':"2001: 9/11 Incident", 
+            '2003':"2003: Congress re-established the U.S. Travel and Tourism Advisory Board (USTTAB)",
+            '2008':"2008: Financial Crisis",
+            '2009':"2009: Lawmakers established a public-private entity to promote U.S. tourism, the Corporation for Trade Promotion, which does business as Brand USA"
+        };
+
+        var dataToDisplayOnMouseOver = {};
+        usa.forEach(d => {
+            if (specialYrs.indexOf(d.year) >= 0) {
+                dataToDisplayOnMouseOver[d.year] = specialInfo[d.year];
+            } else {
+                dataToDisplayOnMouseOver[d.year] = d.year;
+            }
+        });
+
+        var x = d3.scaleTime().range([chartMargin.left, width - chartMargin.right]);
+        var y = d3.scaleLinear().range([height - chartMargin.bottom, chartMargin.top]);
+
+        var line = d3.line()
+            .x(d => x(d.year))
+            .y(d => y(d.inbound))
+            .curve(d3.curveNatural);
+
+        // Scale the range of the data
+        x.domain(d3.extent(usa, d => d.year));
+        max_visitors = d3.max(usa, d => d.inbound);
+        y.domain([0, Math.ceil(max_visitors/1000000)*1000000]); // round up to nearest million for a clean y-axis
+
+
+        // Add the line
+        svgGroup.append("path")
+            .data([usa])
+            .style('stroke', "blue")
+            .style("fill", "none")
+            .attr("d", line);
+
+        // Appends a circle for each datapoint
+        svgGroup.selectAll(".dot")
+            .data(usa)
+            .enter().append("circle") // Uses the enter().append() method
+            .attr("class", "dot") // Assign a class for styling
+            .attr("cx", function (d) {
+                return x(d.year)
+            })
+            .attr("cy", function (d) {
+                return y(d.inbound)
+            })
+            .attr("r", function (d) {
+                if (specialYrs.indexOf(d.year) >= 0) {
+                    return 5;
+                } else {
+                    return 2.5;
+                }
+
+            }) // make dots for 'special years' larger (will re-color next) to direct the readers' attention
+            .style("fill", function (d) {
+                if (specialYrs.indexOf(d.year) >= 0) {
+                    return "red";
+                } else {
+                    return "blue";
+                }
+
+            }) // make dots for 'special years' red to direct the readers' attention
+            .on("mouseover", function (d) {
+                dataToDisplay = dataToDisplayOnMouseOver[d.year];
+                tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
+                    + "<br />" + 'International Visitors: ' + d.inbound.toLocaleString()); // show the year, any special information, & the # int'l visitors
+                return tooltip.transition().duration(tooltipDuration)
+                    .style("visibility", "visible")
+                    .style("top", (d3.event.pageY - 10) + "px")
+                    .style("left", (d3.event.pageX + 10) + "px");
+            })
+            .on("mouseout", function () {
+                return tooltip.style("visibility", "hidden");
+            });
+
+        // Add the X Axis
+        svgGroup.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height - chartMargin.bottom})`)
+            .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("dx", "-.4em")
+            .attr("dy", ".15em");
+
+        // Add the Y Axis
+        svgGroup.append("g")
+            .attr("class", "axis")
+            .attr('transform', `translate(${chartMargin.left}, 0)`)
+            .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+
+        /* Add 'curtain' rectangle to hide entire graph */
+        var curtain = svg.append('rect')
+            .attr('x', -1 * width)
+            .attr('y', -1 * height)
+            .attr('height', height + 5)
+            .attr('width', width - 5)
+            .attr('class', 'curtain')
+            .attr('transform', 'rotate(180)')
+            .style('fill', '#ffffff')
+
+        /* Creating a transition of the curtain to give an animation impression */
+        curtain.transition()
+            .duration(6000)
+            .ease(d3.easeLinear)
+            .attr('x', -2 * width);
+
     }
 
     /**
