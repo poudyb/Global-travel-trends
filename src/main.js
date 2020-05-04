@@ -771,6 +771,7 @@ var scrollVis = function () {
             .style('border-radius', '5px')
             .style('font-size', '0.8em')
             .style('text-align', 'center')
+            
 
         const specialYrs = ['1997', '1998', '2003', '2015', '2017', '2018'];
         const specialInfo = {
@@ -780,14 +781,25 @@ var scrollVis = function () {
             '2015': "2015: MERS outbreak causes massive disruption from May-Dec",
             '2017': "2017: Chinese ban on group travel to Korea",
             '2018': "2018: PyeongChang Winter Olympics in Korea; continued partial travel ban from China through Aug"
+        }
+        const specialDetails = {
+            '1997': "The beginning of Korea’s rise in the entertainment industry was born in an unusual context: a financial crisis. In 1997, a major financial crisis hit Southeast and East Asia when a change in Thai fiscal policy revealed a number of asset bubbles across the region and led to massive currency devaluations, reduced imports, and political upheaval. South Korea borrowed $55 billion from the IMF, World Bank, and Asian Development Bank, a debt they were determined to re-pay as quickly as possible. Incredibly, they managed to re-pay the debt in <5 years, nearly 3 years ahead of schedule. A major part of this effort was a voluntary, national gold-collecting campaign which asked for donations from citizens to help pay back the debt. Amazingly, nearly 3.5 million Koreans (almost 25% of the population) stood in line to contribute their gold, netting $2.2 billion dollars to help reduce the debt.",
+            '1998': "Even after re-paying the loan, Korea’s economy remained weak, and the government was eager to both re-define Korea’s place in the world and find new engines for growth, beginning in 1998. One area in which they took a major bet was entertainment, establishing the Ministry of Culture and Tourism to invest in creative content, inject funding into the Korean Film Council, and fund the creation of 300 cultural industry departments in colleges and universities to churn out talent. Since then, the Ministry of Culture and Tourism’s budget has only grown, breaking $1 billion in 2005, reaching over $5 billion (1.4% of government spending) in 2014, and remaining 2%+ of the national budget up to today. This investment in “soft power” and cultural exports began to pay off as Korean television shows, K-pop groups, and films began to take off internationally, first in China, Japan, and other parts of Asia in the early-to-mid 2000s, and later in the U.S. and elsewhere in the late 2000s. The Korean Tourism Organization began to capitalize on this growth, launching tourism campaigns focused on popular shows and K-pop groups. Private corporations got involved as well, with one entertainment agency launching travel packages for tourists interested in attending concerts by their artists in 2012. Simultaneously, the international explosion of “Gangnam Style” in 2012-13 provided another boost to the industry, and is expected to have made an appreciable impact on the Korean tourism industry in the following year. With the exception of 2003, relatively consistent and rapidly increasing growth in international tourist arrivals in Korea throughout this period demonstrate the success of this government investment.",
+            '2003': "In 2003, tensions between North and South Korea rose considerably (including North Korea’s withdrawal from the Nuclear Non-Proliferation Treaty), likely affecting tourist traffic to the Korean peninsula.",
+            '2015': "2015 saw a reversal of these earlier growth trends, as Korea’s growth in popularity as a hot tourist destination was countered by an outbreak of Middle East Respiratory Syndrome (MERS) in the country. The epidemic hit Korea in May, 2015 and lasted through the end of the year, resulting in the quarantine of more than 16,000 people, cancellations of nearly every major event, and concern both within Korea and internationally about the safety of travel within its borders. MERS was not highly-infectious – only 186 hospitalizations occurred as a result of the outbreak, with 38 deaths – but it was sufficient to keep people out of public places and to make tourists cancel their trips. Korea attempted to stem the enormous losses in tourist activity through actions like introducing free “MERS insurance” for all tourists, which would cover both healthcare and travel expenses for any tourist who caught MERS during their visit. It is possible that without these measures, the numbers would have been even lower; however, even with them, it is estimated that the outbreak cost Korea >2 million international tourist visits and $2.6 billion in tourism industry revenues. This is a scary reality for countries all over the world experiencing and fearing the total impact of a much more infectious, severe, and widespread pandemic like coronavirus. However, it is potentially very encouraging that Korea’s tourism industry re-bounded after the end of the outbreak, appearing to resume its previous trajectory and achieving an all-time high in number of tourist visitors (17.2 million of them) in 2016.",
+            '2017': "2017 brought its own challenges for Korea’s tourism industry, as geopolitical tensions rose between South and North Korea and allies the United States and China, respectively. Specifically, the installation of a U.S. missile defense system in South Korea spurred a strong reaction from the Chinese government, who quickly imposed a ban on all group travel from China to South Korea for the entirety of the year, only partially lifting it (allowing in-person sales only but retaining the ban on online sales) by the end of 2017. Given that Chinese tourists made up 46.8% of all international tourists to Korea in the previous year, this ban had a devastating impact on Korea’s tourism industry, dropping it to the levels of the MERS outbreak without any similar type of health, social, or economic driver within Korea itself. ",
+            '2018': "This ban on online sales of group travel to Korea from China likely continued to depress tourism for the first part of 2018, but a thawing of relations between the two governments and the Korea’s hosting of the Winter Olympics in PyeongChang enabled Korea to recover to above pre-MERS levels, with strong 15% year-over-year growth from 2017 to 2018."
         };
 
         var dataToDisplayOnMouseOver = {};
+        var dataToDisplayOnClick = {};
         southKorea.forEach(d => {
             if (specialYrs.indexOf(d.year) >= 0) {
                 dataToDisplayOnMouseOver[d.year] = specialInfo[d.year];
+                dataToDisplayOnClick[d.year] = specialDetails[d.year];
             } else {
                 dataToDisplayOnMouseOver[d.year] = d.year;
+                dataToDisplayOnClick[d.year] = '';
             }
         });
 
@@ -804,6 +816,8 @@ var scrollVis = function () {
         max_visitors = d3.max(southKorea, d => d.inbound);
         y.domain([0, 2e7]); // round up to nearest million for a clean y-axis
 
+        // Add variable to determine if data point clicked or not (so tooltip stays until second click)
+        var clickFlag = false;
 
         // Add the line
         svgGroup.append("path")
@@ -842,15 +856,63 @@ var scrollVis = function () {
             .on("mouseover", function (d) {
                 dataToDisplay = dataToDisplayOnMouseOver[d.year];
                 tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
-                    + "<br />" + 'International Visitors: ' + d.inbound.toLocaleString()); // show the year, any special information, & the # int'l visitors
+                    + "<br />" + 'International Visitors: ' + parseInt(d.inbound).toLocaleString()); // show the year, any special information, & the # int'l visitors
                 return tooltip.transition().duration(tooltipDuration)
                     .style("visibility", "visible")
                     .style("top", (d3.event.pageY - 10) + "px")
-                    .style("left", (d3.event.pageX + 10) + "px");
-            })
+                    .style("left", (d3.event.pageX + 10) + "px")
+                })
+/*
             .on("mouseout", function () {
                 return tooltip.style("visibility", "hidden");
+            })
+*/
+            .on('click', d => {
+                selectedYr = d.year;
+                dataToDisplay = dataToDisplayOnClick[d.year];
+                if (clickFlag) {
+                    return tooltip.style("visibility", "hidden")
+                } else {
+                    if (dataToDisplay.length > 0) {
+                        tooltip.html("<b><u>" + selectedYr + "</b></u>"
+                        + "<br />" + dataToDisplay); // show the long text for that year
+                        console.log(clickFlag)
+                        return tooltip.transition().duration(tooltipDuration)
+                            .style("visibility", "visible")
+                            .style("top", (d3.event.pageY - dataToDisplay.length/15) + "px")
+                            //.style("left", (d3.event.pageX + 10) + "px")
+                            .style("left", function (d) {
+                                if (parseInt(selectedYr) <= 2003) {
+                                    return (d3.event.pageX + 10) + "px";
+                                } else {
+                                    return (d3.event.pageX - dataToDisplay.length/4) + "px";
+                                }
+                        }
+                    )
+                    //return clickFlag = !clickFlag 
+                    }
+                }
+//                $('#example').popover('show');
+//                window.alert(dataToDisplay)
+/*
+                tooltip.html(dataToDisplay); // show the long text for that year
+                return clickFlag != clickFlag
+//                return tooltip.transition().duration(tooltipDuration)
+                    .style("visibility", "visible")
+                    .style("top", (d3.event.pageY - dataToDisplay.length/10) + "px")
+                    .style("top", (d3.event.pageY + 10) + "px")
+/*                    .style("left", function (d) {
+                        if (parseInt(selectedYr) <= 2003) {
+                            return d3.event.pageX + 10 + "px";
+                        } else {
+                            return d3.event.pageX - 300 + "px";
+                        }
+                        }
+                    ) 
+*/
+//                    .style("left", (d3.event.pageX + dataToDisplay.length/100) + "px");
             });
+            ;
 
         // Add the X Axis
         svgGroup.append("g")
@@ -1010,7 +1072,7 @@ var scrollVis = function () {
             .on("mouseover", function (d) {
                 dataToDisplay = dataToDisplayOnMouseOver[d.year];
                 tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
-                    + "<br />" + 'International Visitors: ' + d.inbound.toLocaleString()); // show the year, any special information, & the # int'l visitors
+                    + "<br />" + 'International Visitors: ' + parseInt(d.inbound).toLocaleString()); // show the year, any special information, & the # int'l visitors
                 return tooltip.transition().duration(tooltipDuration)
                     .style("visibility", "visible")
                     .style("top", (d3.event.pageY - 10) + "px")
@@ -1018,7 +1080,18 @@ var scrollVis = function () {
             })
             .on("mouseout", function () {
                 return tooltip.style("visibility", "hidden");
+            })
+            .on('click', d => {
+                dataToDisplay = dataToDisplayOnClick[d.year];
+                console.log('click',dataToDisplay);
+                tooltip.html("<b><u>" + dataToDisplay + "</b></u>"); // show the long text for that year
+                return tooltip.transition().duration(tooltipDuration)
+                    .style("visibility", "visible")
+                    .style("top", (d3.event.pageY - 10) + "px")
+                    .style("left", (d3.event.pageX + 10) + "px");
             });
+            ;
+
 
         // Add the X Axis
         svgGroup.append("g")
