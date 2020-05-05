@@ -115,6 +115,8 @@ var scrollVis = function () {
     var inboundPivot = null;
     var southKorea = null
     var usa = null;
+    var interactiveMapData = null;
+    var inboundTourism =null;
     /**
      * chart
      *
@@ -132,11 +134,13 @@ var scrollVis = function () {
                 d => d.country_id
             );
 
+            console.log("tourism", tourism)
+
             southKorea = rawData[1].filter(d => d.country_code === "KOR");
-            console.log(southKorea);
 
             usa = rawData[1].filter(d => d.country_code === "USA");
-            console.log(usa);
+            inboundTourism = rawData[1];
+            interactiveMapData = rawData[0];
 
             inboundPivot = rawData[2];
 
@@ -294,6 +298,9 @@ var scrollVis = function () {
 
         g.append('g')
             .attr('class', 'usa')
+
+        g.append('g')
+            .attr('class', 'interactiveMap')
 
         //
         //     // axis
@@ -457,6 +464,7 @@ var scrollVis = function () {
             zoomInAreaChart,
             southKoreaStory,
             usaStory,
+            showInteractiveMap,
             showHistAll,
             showCough,
             showHistAll
@@ -1038,7 +1046,7 @@ var scrollVis = function () {
 
 
         /* Add 'curtain' rectangle to hide entire graph */
-        var curtain = svg.append('rect')
+        var curtain = svgGroup.append('rect')
             .attr('x', -1 * width)
             .attr('y', -1 * height)
             .attr('height', height + 5)
@@ -1054,6 +1062,67 @@ var scrollVis = function () {
             .attr('x', -2 * width);
 
     }
+
+    function showInteractiveMap(){
+        g.selectAll('.area-chart,.map,.south-korea,.usa, rect')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0);
+
+        var svgGroup = g.selectAll('.interactiveMap');
+
+        countriesWithData = []
+
+        inboundTourism.forEach(function (d){
+            if(countriesWithData.indexOf(d.country_name) == -1) {
+                countriesWithData.push(d.country_name)
+			}
+		})
+
+        console.log(countriesWithData)
+        projection = d3.geoNaturalEarth1().scale(200);
+
+        var path = d3.geoPath(projection);
+    
+        var path = d3.geoPath(projection);
+   
+        var countries = topojson.feature(interactiveMapData, interactiveMapData.objects.countries).features;
+
+        svgGroup.append('g')
+            .attr('class', 'map geography')
+            .attr('id', 'land')
+            .selectAll('path')
+            .data(countries)
+            .join('path')
+            .attr("fill", function (d) {
+                if(countriesWithData.indexOf(d.properties.name) >= 0){
+                    return "rgb(33,113,181)";
+                }
+                else {
+                    return "gray";
+                }
+            })
+            .on('click', d => {
+                //Just a placeholder
+                return "Hi";
+                //drawLineGraph(d.properties.name, inboundTourism)
+            })
+            .attr("d", path)
+            .append('title')
+            .text(d => d.properties.name);
+
+        svgGroup.append('g')
+            .attr('class', 'map geography')
+            .attr('id', 'borders')
+            .append("path")
+            .datum(topojson.mesh(interactiveMapData, interactiveMapData.objects.countries, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "white")
+            .style('stroke-width', 1.5)
+            .attr("stroke-linejoin", "round")
+            .attr("d", path);
+
+	}
 
     /**
      * showHistAll - show all histogram
