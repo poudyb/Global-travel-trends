@@ -929,7 +929,7 @@ var scrollVis = function () {
      *
      */
     function usaStory() {
-        g.selectAll('.area-chart,.map,.south-korea')
+        g.selectAll('.area-chart,.map,.south-korea,rect')
             .transition()
             .duration(600)
             .attr('opacity', 0);
@@ -1068,7 +1068,7 @@ var scrollVis = function () {
             .transition()
             .duration(600)
             .attr('opacity', 0);
-
+                  
         var svgGroup = g.selectAll('.interactiveMap');
 
         countriesWithData = []
@@ -1078,6 +1078,8 @@ var scrollVis = function () {
                 countriesWithData.push(d.country_name)
 			}
 		})
+        /*countriesWithData = ["Austria","Canada","China","Croatia","France","Germany","Greece","Hong Kong","Hungary","India","Italy","Macao","Malaysia","Mexico","Netherlands","Poland", "Portugal",
+                         "Russian Federation","Saudi Arabia","Spain","Thailand","Turkey","Ukraine","United Arab Emirates","United Kingdom","United States Of America"]*/
 
         console.log(countriesWithData)
         projection = d3.geoNaturalEarth1().scale(200);
@@ -1088,6 +1090,16 @@ var scrollVis = function () {
    
         var countries = topojson.feature(interactiveMapData, interactiveMapData.objects.countries).features;
 
+        // define the tooltip 
+        var tool_tip = d3.tip()
+        .attr("class", "d3-tip")
+         // input the title, and include the div
+        .html(
+  	        "<div id='tipDiv'></div>"
+        );
+
+        svgGroup.call(tool_tip);
+        
         svgGroup.append('g')
             .attr('class', 'map geography')
             .attr('id', 'land')
@@ -1102,11 +1114,84 @@ var scrollVis = function () {
                     return "gray";
                 }
             })
-            .on('click', d => {
-                //Just a placeholder
-                return "Hi";
-                //drawLineGraph(d.properties.name, inboundTourism)
+            .on("mouseover", function (d) {
+                // get the name of the country
+                g.selectAll('.interactiveMap')
+                .attr('opacity', 0.3);
+                current_country = d.properties.name
+	            // show the tooltip
+                tool_tip.show();
+                
+                var tipSVG = d3.select("#tipDiv")
+                .append("svg")
+                .attr("width", 0.5*width)
+                .attr("height", 0.5*height);
+
+                var parseDate = d3.timeParse("%Y");
+                   
+                var selectedCountryInbound = inboundTourism.filter(function(d) {
+                    return d.country_name === current_country;
+                });
+                
+                selectedCountryInbound.forEach(function(d) {
+                   d.year = d.year;
+                   d.inbound = +d.inbound || 0
+                   console.log("the value is", d.inbound)
+                   d.inbound = parseInt(d.inbound);
+                });
+
+                var x = d3.scaleTime().range([0.5* chartMargin.left, 0.5*(width - chartMargin.right)]);
+                var y = d3.scaleLinear().range([0.5*(height - chartMargin.bottom), 0.5* chartMargin.top]);
+
+                var line = d3.line()
+                    .x(d => x(d.year))
+                    .y(d => y(d.inbound))
+                    .curve(d3.curveNatural);
+
+                // Scale the range of the data
+                x.domain(d3.extent(selectedCountryInbound, d => d.year));
+                max_visitors = d3.max(selectedCountryInbound, d => d.inbound);
+                y.domain([0, Math.ceil(max_visitors/1000000)*1000000]); // round up to nearest million for a clean y-axis
+
+                // Add the line
+                tipSVG.append("path")
+                .data([selectedCountryInbound])
+                .style('stroke', "blue")
+                .style("fill", "none")
+                .attr("d", line);
+
+                // Appends a circle for each datapoint
+                tipSVG.selectAll(".dot")
+                    .data(selectedCountryInbound)
+                    .enter().append("circle") // Uses the enter().append() method
+                    .attr("class", "dot") // Assign a class for styling
+                    .attr("cx", function (d) {
+                        return x(d.year)
+                    })
+                    .attr("cy", function (d) {
+                        return y(d.inbound)
+                    })
+                    .attr("r", 2.5) // make dots for 'special years' larger (will re-color next) to direct the readers' attention
+                    .style("fill",  "blue")
+            
+                // Add the X Axis
+                tipSVG.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(0,${0.5*height - 0.5*(chartMargin.bottom)})`)
+                    .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+                    .selectAll("text")
+                    .style("text-anchor", "end")
+                    .attr("dx", "-.4em")
+                    .attr("dy", ".15em");
+
+                // Add the Y Axis
+                tipSVG.append("g")
+                    .attr("class", "axis")
+                    .attr('transform', `translate(${0.5*chartMargin.left}, 0)`)
+                    .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
             })
+            .on('mouseout', tool_tip.hide)
             .attr("d", path)
             .append('title')
             .text(d => d.properties.name);
