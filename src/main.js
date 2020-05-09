@@ -1078,10 +1078,7 @@ var scrollVis = function () {
                 countriesWithData.push(d.country_name)
 			}
 		})
-        /*countriesWithData = ["Austria","Canada","China","Croatia","France","Germany","Greece","Hong Kong","Hungary","India","Italy","Macao","Malaysia","Mexico","Netherlands","Poland", "Portugal",
-                         "Russian Federation","Saudi Arabia","Spain","Thailand","Turkey","Ukraine","United Arab Emirates","United Kingdom","United States Of America"]*/
-
-        console.log(countriesWithData)
+        
         projection = d3.geoNaturalEarth1().scale(200);
 
         var path = d3.geoPath(projection);
@@ -1093,7 +1090,7 @@ var scrollVis = function () {
         // define the tooltip 
         var tool_tip = d3.tip()
         .attr("class", "d3-tip")
-         // input the title, and include the div
+         // include the div
         .html(
   	        "<div id='tipDiv'></div>"
         );
@@ -1171,7 +1168,7 @@ var scrollVis = function () {
                     .attr("cy", function (d) {
                         return y(d.inbound)
                     })
-                    .attr("r", 2.5) // make dots for 'special years' larger (will re-color next) to direct the readers' attention
+                    .attr("r", 2.5) 
                     .style("fill",  "blue")
             
                 // Add the X Axis
