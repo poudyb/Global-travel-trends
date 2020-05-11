@@ -115,6 +115,8 @@ var scrollVis = function () {
     var inboundPivot = null;
     var southKorea = null
     var usa = null;
+    var interactiveMapData = null;
+    var inboundTourism =null;
     /**
      * chart
      *
@@ -132,11 +134,13 @@ var scrollVis = function () {
                 d => d.country_id
             );
 
+            console.log("tourism", tourism)
+
             southKorea = rawData[1].filter(d => d.country_code === "KOR");
-            console.log(southKorea);
 
             usa = rawData[1].filter(d => d.country_code === "USA");
-            console.log(usa);
+            inboundTourism = rawData[1];
+            interactiveMapData = rawData[0];
 
             inboundPivot = rawData[2];
 
@@ -294,6 +298,9 @@ var scrollVis = function () {
 
         g.append('g')
             .attr('class', 'usa')
+
+        g.append('g')
+            .attr('class', 'interactiveMap')
 
         //
         //     // axis
@@ -457,6 +464,7 @@ var scrollVis = function () {
             zoomInAreaChart,
             southKoreaStory,
             usaStory,
+            showInteractiveMap,
             showHistAll,
             showCough,
             showHistAll
@@ -909,7 +917,7 @@ var scrollVis = function () {
                     }
             })
 
-                    
+
             .on("mouseout", function () {
                 if (!clickFlag) {
                     return tooltip.style("visibility", "hidden");
@@ -965,10 +973,10 @@ var scrollVis = function () {
                             .style("right", function (d) { return (posFromLeft - 400) + "px" });
                                 }
                         }
-  */                  
-                    //return clickFlag = !clickFlag 
+  */
+                    //return clickFlag = !clickFlag
                     }}});
-                
+
 //                $('#example').popover('show');
 //                window.alert(dataToDisplay)
 /*
@@ -985,7 +993,7 @@ var scrollVis = function () {
                             return d3.event.pageX - 300 + "px";
                         }
                         }
-                    ) 
+                    )
 */
 //                    .style("left", (d3.event.pageX + dataToDisplay.length/100) + "px");
 
@@ -1011,11 +1019,11 @@ var scrollVis = function () {
 /*        svgGroup.append("text")
             .attr("transform", `translate(0,10)`)
             .selectAll("text")
-            .attr("x", (width / 2))             
+            .attr("x", (width / 2))
             .attr("y", 0 - (margin.top / 2))
-            .attr("text-anchor", "middle")  
-            .style("font-size", "16px") 
-            .style("text-decoration", "underline")  
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .style("text-decoration", "underline")
             .text("International Tourism to S. Korea, 1995-2018");
 */
 
@@ -1071,23 +1079,23 @@ var scrollVis = function () {
      *
      */
     function usaStory() {
-        g.selectAll('.area-chart,.map,.south-korea')
+        g.selectAll('.area-chart,.map,.south-korea,rect')
             .transition()
             .duration(600)
             .attr('opacity', 0);
 
         var svgGroup = g.selectAll('.usa');
 
+        var textWidth = width*0.3;
+        var newChartWidth = width*0.7;
+
         const tooltipDuration = 100;
         var tooltip = d3.select("body")
             .append("div")
+            .attr('width',textWidth + "px")
             .style("position", "absolute")
             .style("z-index", "15")
             .style("visibility", "hidden")
-            .style("background", "#eeeeee")
-            .style('padding', '20px')
-            .style('border', '2px solid grey')
-            .style('border-radius', '5px')
             .style('font-size', '0.8em')
             .style('text-align', 'center')
 
@@ -1100,17 +1108,38 @@ var scrollVis = function () {
             '2009':"2009: Lawmakers established a public-private entity to promote U.S. tourism, the Corporation for Trade Promotion, which does business as Brand USA"
         };
 
+        specialDetails = {
+            '1997':"In 1997 Congress dissolved the United States Travel and Tourism Administration (USTTA) which operated the country's official travel and" +
+                    "tourism offices worldwide and promoted United States as a tourist destination to international travelers. While the tourism industry saw" +
+                    "some decrease in tourism following the dissolvement of USTTA, it picked up soon after.",
+            '2001':"2001: 9/11 Incident. The travel and tourism industry in the United States got heavily impacted due to the September 11 attacks. Tourism "+
+                    "within and to the United States fell steadily in the year and a half following the 9/11 attacks. In the first full week after flights resumed,"+
+                    "passenger numbers fell by nearly 45 percent, from 9 million in the week before September 11 to 5 million.",
+            '2003':"In an effort to boost the severely impacted tourism industry, in 2003, Congress restarted funding for travel promotion through the Consolidated " +
+                    "Appropriations Resolution and established the U.S. Travel and Tourism Advisory Board (USTTAB), which has been re-chartered several times, "+
+                    "most recently in September 2013.",
+            '2008':"The next dip in tourism happened after the US financial crisis in 2008. While this drop was considerably milder than what had occurred "+
+                    "after the 9/11 attacks, 250,000 jobs were lost purely in the tourism industry. Travel prices also fell twice as fast in the 2008 "+
+                    "recession as they did after the 9/11 attacks.",
+            '2009':"Presumably to cope up with the decline in tourism and the corresponding economic impact, US Federal Government and Lawmakers established "+
+                    "a public-private entity in 2009 to promote U.S. tourism, the Corporation for Trade Promotion, which does business as Brand USA. Brand USA, "+
+                    "which began operations in 2011, attributes 4.3 million incremental international visitors since 2013 to its marketing efforts."
+        };
+
         var dataToDisplayOnMouseOver = {};
+        var dataToDisplayOnClick = {};
         usa.forEach(d => {
             if (specialYrs.indexOf(d.year) >= 0) {
                 dataToDisplayOnMouseOver[d.year] = specialInfo[d.year];
+                dataToDisplayOnClick[d.year] = specialDetails[d.year];
             } else {
                 dataToDisplayOnMouseOver[d.year] = d.year;
+                dataToDisplayOnClick[d.year] = '';
             }
         });
 
-        var x = d3.scaleTime().range([chartMargin.left, width - chartMargin.right]);
-        var y = d3.scaleLinear().range([height - chartMargin.bottom, chartMargin.top]);
+        var x = d3.scaleTime().range([chartMargin.left, (newChartWidth - chartMargin.right)]);
+        var y = d3.scaleLinear().range([(height - chartMargin.bottom), chartMargin.top]);
 
         var line = d3.line()
             .x(d => x(d.year))
@@ -1122,6 +1151,9 @@ var scrollVis = function () {
         max_visitors = d3.max(usa, d => d.inbound);
         y.domain([0, Math.ceil(max_visitors/1000000)*1000000]); // round up to nearest million for a clean y-axis
 
+
+        // Add variable to determine if data point clicked or not (so tooltip stays until second click)
+        var clickFlag = false;
 
         // Add the line
         svgGroup.append("path")
@@ -1148,7 +1180,7 @@ var scrollVis = function () {
                     return 2.5;
                 }
 
-            }) // make dots for 'special years' larger (will re-color next) to direct the readers' attention
+            }) // // make dots for 'special years' red to direct the readers' attention
             .style("fill", function (d) {
                 if (specialYrs.indexOf(d.year) >= 0) {
                     return "red";
@@ -1156,30 +1188,58 @@ var scrollVis = function () {
                     return "blue";
                 }
 
-            }) // make dots for 'special years' red to direct the readers' attention
-            .on("mouseover", function (d) {
-                dataToDisplay = dataToDisplayOnMouseOver[d.year];
-                tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
-                    + "<br />" + 'International Visitors: ' + parseInt(d.inbound).toLocaleString()); // show the year, any special information, & the # int'l visitors
-                return tooltip.transition().duration(tooltipDuration)
-                    .style("visibility", "visible")
-                    .style("top", (d3.event.pageY - 10) + "px")
-                    .style("left", (d3.event.pageX + 10) + "px");
             })
-            .on("mouseout", function () {
-                return tooltip.style("visibility", "hidden");
-            })
-            .on('click', d => {
-                dataToDisplay = dataToDisplayOnClick[d.year];
-                console.log('click',dataToDisplay);
-                tooltip.html("<b><u>" + dataToDisplay + "</b></u>"); // show the long text for that year
-                return tooltip.transition().duration(tooltipDuration)
-                    .style("visibility", "visible")
-                    .style("top", (d3.event.pageY - 10) + "px")
-                    .style("left", (d3.event.pageX + 10) + "px");
-            });
-            ;
 
+            .on("mouseover", function (d) {
+                if (!clickFlag){
+                    dataToDisplay = dataToDisplayOnMouseOver[d.year];
+
+                    tooltip.html("<b><u>" + dataToDisplay + "</b></u>"
+                    + "<br />" + 'International Visitors: ' + d.inbound.toLocaleString()); // show the year, any special information, & the # int'l visitors
+
+                    return tooltip.transition().duration(tooltipDuration)
+                        .style("visibility", "visible")
+                        .style("top", (d3.event.pageY - 15) + "px")
+                        .style("left", (d3.event.pageX + 10) + "px")
+                        .style("background", "#eeeeee")
+                        .style('padding', '10px')
+                        .style('border', '2px solid grey')
+                        .style('border-radius', '3px')
+                        .style('width', '200px');
+				}
+            })
+
+            .on("mouseout", function () {
+                if (!clickFlag) {
+                    return tooltip.style("visibility", "hidden");
+                }
+            })
+
+            .on('click', d=> {
+                selectedYr = d.year;
+                dataToDisplay = dataToDisplayOnClick[d.year];
+
+                if (clickFlag) {
+                    clickFlag = !clickFlag;
+                    return tooltip.style("visibility", "hidden")
+                }else{
+                    if (dataToDisplay.length > 0){
+                        tooltip.html("<b><u>" + selectedYr + "</b></u>"
+                        + "<br />" + dataToDisplay); // show the long text for that year
+
+                        clickFlag = !clickFlag;
+                        return tooltip.transition().duration(tooltipDuration)
+                            .style("visibility", "visible")
+                            .style("top", (d3.event.pageY - dataToDisplay.length/15) + "px")
+                            .style("left", (400 + newChartWidth) + "px")
+                            .style('width', (chartMargin.right * 1.9 + textWidth) + "px")
+                            .style("background", "#ffffff")
+                            .style('padding', '10px')
+                            .style('border', '0px solid grey')
+                            .style('border-radius', '0px')
+					}
+				}
+            });
 
         // Add the X Axis
         svgGroup.append("g")
@@ -1199,7 +1259,7 @@ var scrollVis = function () {
 
 
         /* Add 'curtain' rectangle to hide entire graph */
-        var curtain = svg.append('rect')
+        var curtain = svgGroup.append('rect')
             .attr('x', -1 * width)
             .attr('y', -1 * height)
             .attr('height', height + 5)
@@ -1213,8 +1273,159 @@ var scrollVis = function () {
             .duration(6000)
             .ease(d3.easeLinear)
             .attr('x', -2 * width);
-
     }
+
+    function showInteractiveMap(){
+        g.selectAll('.area-chart,.map,.south-korea,.usa, rect')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0);
+        svg.selectAll("rect").remove()
+        var svgGroup = g.selectAll('.interactiveMap');
+
+        var newChartWidth = width*0.5;
+        var newChartHeight = height*0.5;
+
+        countriesWithData = []
+
+        inboundTourism.forEach(function (d){
+            if(countriesWithData.indexOf(d.country_id) == -1) {
+                countriesWithData.push(d.country_id)
+			}
+		})
+        console.log("the countries are", countriesWithData)
+
+        projection = d3.geoNaturalEarth1().scale(200);
+
+        var path = d3.geoPath(projection);
+
+        var path = d3.geoPath(projection);
+
+        var countries = topojson.feature(interactiveMapData, interactiveMapData.objects.countries).features;
+
+        // define the tooltip
+        var tool_tip = d3.tip()
+        .attr("class", "d3-tip")
+        .style("left", (400 + newChartWidth) + "px")
+         // include the div
+        .html(
+  	        "<div id='tipDiv'></div>"
+        );
+
+        svgGroup.call(tool_tip);
+
+        svgGroup.append('g')
+            .attr('class', 'map geography')
+            .attr('id', 'land')
+            .selectAll('path')
+            .data(countries)
+            .join('path')
+            .attr("fill", function (d) {
+
+                if(countriesWithData.indexOf(d.id) >= 0){
+                    return "rgb(33,113,181)";
+                }
+                else {
+                    return "gray";
+                }
+            })
+            .on("mouseover", function (d) {
+                // get the name of the country
+                g.selectAll('.interactiveMap')
+                .attr('opacity', 0.3);
+                current_country = d.id
+	            // show the tooltip
+                tool_tip.show();
+
+                var tipSVG = d3.select("#tipDiv")
+                .append("svg")
+                .attr("width", newChartWidth)
+                .attr("height", newChartHeight);
+                //.style("left", (400 + newChartWidth) + "px");
+
+                var parseDate = d3.timeParse("%Y");
+
+                var selectedCountryInbound = inboundTourism.filter(function(d) {
+                    return d.country_id === current_country;
+                });
+
+                selectedCountryInbound.forEach(function(d) {
+                   d.year = d.year;
+                   d.inbound = +d.inbound || 0
+                   d.inbound = parseInt(d.inbound);
+                });
+
+                var x = d3.scaleTime().range([0.5* chartMargin.left, (newChartWidth - chartMargin.right)]);
+                var y = d3.scaleLinear().range([0.5*(height - chartMargin.bottom), 0.5* chartMargin.top]);
+
+                var line = d3.line()
+                    .x(d => x(d.year))
+                    .y(d => y(d.inbound))
+                    .curve(d3.curveNatural);
+
+                // Scale the range of the data
+                x.domain(d3.extent(selectedCountryInbound, d => d.year));
+                max_visitors = d3.max(selectedCountryInbound, d => d.inbound);
+                y.domain([0, Math.ceil(max_visitors/1000000)*1000000]); // round up to nearest million for a clean y-axis
+
+                // Add the line
+                tipSVG.append("path")
+                .data([selectedCountryInbound])
+                .style('stroke', "blue")
+                .style("fill", "none")
+                .attr("d", line);
+
+                // Appends a circle for each datapoint
+                tipSVG.selectAll(".dot")
+                    .data(selectedCountryInbound)
+                    .enter().append("circle") // Uses the enter().append() method
+                    .attr("class", "dot") // Assign a class for styling
+                    .attr("cx", function (d) {
+                        return x(d.year)
+                    })
+                    .attr("cy", function (d) {
+                        return y(d.inbound)
+                    })
+                    .attr("r", 2.5)
+                    .style("fill",  "blue")
+
+                // Add the X Axis
+                tipSVG.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(0,${0.5*height - 0.5*(chartMargin.bottom)})`)
+                    .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+                    .selectAll("text")
+                    .style("text-anchor", "end")
+                    .attr("dx", "-.4em")
+                    .attr("dy", ".15em");
+
+                // Add the Y Axis
+                tipSVG.append("g")
+                    .attr("class", "axis")
+                    .attr('transform', `translate(${0.5*chartMargin.left}, 0)`)
+                    .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+            })
+            .on('mouseout', function(d){
+                //g.selectAll('.interactiveMap').attr('opacity', 1);
+                tool_tip.hide();
+            })
+            .attr("d", path)
+            .append('title')
+            .text(d => d.properties.name);
+
+        svgGroup.append('g')
+            .attr('class', 'map geography')
+            .attr('id', 'borders')
+            .append("path")
+            .datum(topojson.mesh(interactiveMapData, interactiveMapData.objects.countries, (a, b) => a !== b))
+            .attr("fill", "none")
+            .attr("stroke", "white")
+            .style('stroke-width', 1.5)
+            .attr("stroke-linejoin", "round")
+            .attr("d", path);
+
+	}
 
     /**
      * showHistAll - show all histogram
