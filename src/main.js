@@ -184,22 +184,22 @@ var scrollVis = function () {
 
 
         /* Area chart */
-        // var tooltip = d3.select("#vis")
-        //     .append("div")
-        //     .attr('width', textWidth + "px")
-        //     .style("position", "absolute")
-        //     .style("z-index", "15")
-        //     .style("visibility", "hidden")
-        //     /*
-        //     .style("background", "#eeeeee")
-        //     .style('padding', '20px')
-        //     .style('border', '2px solid grey')
-        //     .style('border-radius', '5px')
-        //     */
-        //     .style('font-size', '0.8em')
-        //     .style('text-align', 'center');
+        var tooltip = d3.select("#vis")
+            .append("div")
+            .attr("id", "tooltip")
+            // .style('width', "50px")
+            .style('opacity', "0")
+            .style("position", "absolute")
+            .style("z-index", "15")
+            .style("visibility", "hidden")
+            .style("background", "#eeeeee")
+            .style('padding', '5px')
+            .style('border', '2px solid grey')
+            .style('border-radius', '5px')
+            .style('font-size', '14px')
+            .style('text-align', 'center');
 
-        areaCountries = [
+        var areaCountries = [
             'France',
             'Spain',
             'United States',
@@ -239,21 +239,38 @@ var scrollVis = function () {
             .attr('fill', '#2c7fb8')
             .attr('opacity', 0.8)
             .attr('d', area)
-            .on('mouseover', function(d, i) {
-                console.log(d, i);
-                d3.select(this)
-                    .transition()
-                    .duration(0)
-                    .attr('fill', '#cccccc')
-                    .attr('stroke', '#444')
-                ;
+            .on('mouseover', function(d) {
+                if (activeIndex === 3) {
+                    var yVal = (d[d.length - 1][0] + d[d.length - 1][1]) / 2;
+                    var yPos = yAreaScale(yVal);
+                    d3.select(this)
+                        .transition()
+                        .duration(0)
+                        .attr('fill', '#cccccc')
+                        .attr('stroke', '#444');
+
+                    tooltip
+                        .transition()
+                        .duration(10)
+                        .text(d.key)
+                        .style("visibility", "visible")
+                        .style("left", `${width - 50}px`)
+                        .style("top", yPos + "px")
+                }
             })
             .on('mouseout', function() {
-                d3.select(this)
-                    .transition()
-                    .duration(0)
-                    .attr('fill', '#2c7fb8')
-                    .attr('stroke', null);
+                if (activeIndex === 3) {
+                    d3.select(this)
+                        .transition()
+                        .duration(0)
+                        .attr('fill', '#2c7fb8')
+                        .attr('stroke', null);
+                }
+            });
+
+        g.selectAll('.area-lines')
+            .on('mouseout', function() {
+                tooltip.style("visibility", "hidden")
             });
 
         g.append('g')
@@ -404,6 +421,11 @@ var scrollVis = function () {
             .duration(600)
             .attr('opacity', 0);
 
+        d3.select("#tooltip")
+            .transition()
+            .duration(600)
+            .style('opacity', 0);
+
         var year = startYear;
         var timer = setInterval(() => {
             year += 1;
@@ -412,17 +434,18 @@ var scrollVis = function () {
             }
             var yearData = tourism.get(year.toString());
 
+            var yearDuration = 150;
             g.selectAll('.year')
                 .transition()
-                .duration(200)
-                .delay(200 * (year - startYear))
+                .duration(yearDuration)
+                .delay(yearDuration * (year - startYear))
                 .text(year);
 
             g.selectAll('.circles')
                 .selectAll('circle')
                 .transition()
-                .duration(200)
-                .delay(200 * (year - startYear))
+                .duration(yearDuration)
+                .delay(yearDuration * (year - startYear))
                 .ease(d3.easeLinear)
                 // .attr('fill', d => circleColor(yearData.get(d.id)))
                 .attr('r', d => radius(yearData.get(d.id)));
@@ -442,6 +465,11 @@ var scrollVis = function () {
             .duration(600)
             .attr('opacity', 1);
 
+        d3.select("#tooltip")
+            .transition()
+            .duration(600)
+            .style('opacity', 1);
+
         g.selectAll('.map')
             .transition()
             .duration(600)
@@ -454,7 +482,7 @@ var scrollVis = function () {
 
         g.selectAll('.area-lines')
             .selectAll('path')
-            .transition()
+            .transition("area")
             .duration(1200)
             .attr('fill', '#2c7fb8')
             .attr('d', area);
@@ -491,7 +519,7 @@ var scrollVis = function () {
 
         g.selectAll('.area-lines')
             .selectAll('path')
-            .transition()
+            .transition("area")
             .duration(1200)
             .attr('fill', '#b30000')
             .attr('d', newArea);
