@@ -12,8 +12,9 @@
 
     <style>
         body {
-            font-family: "helvetica neue", Helvetica, sans-serif;
-            font-size: 18px;
+            /*font-family: "Se", Helvetica, sans-serif;*/
+            font-family: "Segoe UI", sans-serif;
+            font-size: 24px;
             color: #696969;
         }
         .w-left{
@@ -22,6 +23,11 @@
         .w-right{
             width: 70%
         }
+        #title{
+            height: 300px;
+            background-image: url("img/title.jpg");
+            font-family: "Segoe UI Semibold"
+        }
         #sections {
             position: relative;
             display: inline-block;
@@ -29,34 +35,45 @@
             z-index: 90;
         }
         .step {
-            margin-bottom: 600px;
+            margin-bottom: 400px;
         }
         #vis {
             display: inline-block;
-            position: fixed;
-            top: 60px;
+            position: -webkit-sticky;
+            position: sticky;
+            float: right;
+            top: 50px;
             z-index: 1;
             margin-left: 0;
             height: 600px;
+            text-align: center;
             /*width: 940px;*/
-            background-color: #eef;
+            /*background-color: #eef;*/
+        }
+
+        .area-chart{
+            font-size: 14px
         }
     </style>
 </head>
 <body>
 
 <div class="container-fluid">
-    <div id='graphic' class="w-100">
-        <div id='sections' class="w-left mx-5">
+    <div id="title" class="pt-5 w-100 text-center text-white">
+        <h1 class="display-3">Global Tourism</h1>
+        <h2>Bidusha Poudyal, Zoe Wolszon, Devin Zhang</h2>
+    </div>
+    <div id='graphic' class="pt-5 w-100 bg-light">
+        <div id='vis' class="w-right"></div>
+        <div id='sections' class="w-left pl-5">
             <section class="step">
-                <div class="title mt-5"><h1>Global Tourism</h1></div>
                 This visualization shows trends in worldwide tourism, as measure by inbound
                 arrivals and outbound departures for tourism purposes.
-
+                <br>
                 Scroll down to learn more about how tourism has changed over the last 25 years.
             </section>
             <section class="step">
-                Our data begins in 1995, when worldwide tourism was centralized in Europe.
+                In 1995, worldwide tourism was centralized in Europe.
             </section>
             <section class="step">
                 Over the past 25 years, we've seen growth in China, Southeast Asia, and Latin
@@ -106,11 +123,11 @@
                 Interact with the map by hovering over any country highlighted in blue.
             </section>
         </div>
-        <div id='vis' class="w-right"></div>
     </div>
 </div>
 
 <script src="src/scroller.js"></script>
+<script src="src/circleLegend.js"></script>
 <script src="src/main.js"></script>
 
 
