@@ -15,8 +15,6 @@ var circleLegend = function () {
         selection.each(function () {
             var g = d3.select(this);
 
-            // g.attr('class', 'circle-legend');
-
             // Stash a snapshot of the new scale, and retrieve the old snapshot.
             var scale0 = this.__chart__ || scale,
                 scale1 = this.__chart__ = scale.copy();
@@ -85,7 +83,6 @@ var circleLegend = function () {
                     .attr('x2', x2 * sign);
 
                 selection.attr('transform', function (d) {
-                    console.log("here", d, scale(d));
                     return 'translate(0,' + -scale(d) + ')';
                 });
             }
