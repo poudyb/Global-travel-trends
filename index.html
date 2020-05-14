@@ -6,15 +6,27 @@
     <script src="https://d3js.org/topojson.v3.min.js"></script>
     <script src="https://d3js.org/d3-array.v2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css"/>
     <title>Title</title>
 
-
     <style>
         body {
-            font-family: "helvetica neue", Helvetica, sans-serif;
-            font-size: 18px;
+            /*font-family: "Se", Helvetica, sans-serif;*/
+            font-family: "Segoe UI", sans-serif;
+            font-size: 24px;
             color: #696969;
+        }
+        .w-left{
+            width: 30%
+        }
+        .w-right{
+            width: 70%
+        }
+        #title{
+            height: 300px;
+            background-image: url("img/title.jpg");
+            font-family: "Segoe UI Semibold"
         }
         #sections {
             position: relative;
@@ -23,90 +35,102 @@
             z-index: 90;
         }
         .step {
-            margin-bottom: 600px;
+            margin-bottom: 400px;
         }
         #vis {
             display: inline-block;
-            position: fixed;
-            top: 60px;
+            position: -webkit-sticky;
+            position: sticky;
+            float: right;
+            top: 50px;
             z-index: 1;
             margin-left: 0;
             height: 600px;
+            text-align: center;
             /*width: 940px;*/
-            /*background-color: #ddd;*/
+            /*background-color: #eef;*/
+        }
+
+        .area-chart{
+            font-size: 14px
         }
     </style>
 </head>
 <body>
 
 <div class="container-fluid">
-    <div id='graphic' class="w-25">
-        <div id='sections' class="w-100">
+    <div id="title" class="pt-5 w-100 text-center text-white">
+        <h1 class="display-3">Global Tourism</h1>
+        <h2>Bidusha Poudyal, Zoe Wolszon, Devin Zhang</h2>
+    </div>
+    <div id='graphic' class="pt-5 w-100 bg-light">
+        <div id='vis' class="w-right"></div>
+        <div id='sections' class="w-left pl-5">
             <section class="step">
-                <div class="title"><h1>Global Tourism</h1></div>
                 This visualization shows trends in worldwide tourism, as measure by inbound
-                arrivals and outbound departures for tourism purposes. 
-
+                arrivals and outbound departures for tourism purposes.
+                <br><br>
                 Scroll down to learn more about how tourism has changed over the last 25 years.
             </section>
             <section class="step">
-                Our data begins in 1995, when worldwide tourism was centralized in Europe.
+                In 1995, worldwide tourism was centralized in Europe.
             </section>
             <section class="step">
                 Over the past 25 years, we've seen growth in China, Southeast Asia, and Latin
-                America. 
+                America.
                 Pause to watch the bubbles change size on the map, representing these increases
                 in international tourist visitors in each location as time goes by.
             </section>
             <section class="step">
-                Out of the top 25 tourist destinations, there has been a rapid and steady increase,
+                Out of the top 20 tourist destinations, there has been a rapid and steady increase,
                 with notable dips in 2001 after the 9/11 attacks and in the 2008 financial crisis.
                 Why has international tourism increased so rapidly?
             </section>
             <section class="step">
                 In South Korea, the government has made a concerted effort to export its culture
                 and attract tourists. Inbound tourism grew 450% from 1995 to 2018.
-                Given its current status as an entertainment export powerhouse, with the global 
-                “K-pop” phenomenon driving a >$5 billion Korean music industry today and Korean 
-                films raking in awards like the Oscar for Best Picture, Korea also tells a compelling 
-                story about the impact government spending and cultural exports can have on a 
-                country’s tourism industry. It also provides an informative view on the type of impact 
-                epidemics can have on tourism locally, based on its 2015 MERS epidemic. This is a potential 
-                hint of what the world may face during the COVID pandemic.
+<!--                Given its current status as an entertainment export powerhouse, with the global-->
+<!--                “K-pop” phenomenon driving a >$5 billion Korean music industry today and Korean-->
+<!--                films raking in awards like the Oscar for Best Picture, Korea also tells a compelling-->
+<!--                story about the impact government spending and cultural exports can have on a-->
+<!--                country’s tourism industry. It also provides an informative view on the type of impact-->
+<!--                epidemics can have on tourism locally, based on its 2015 MERS epidemic. This is a potential-->
+<!--                hint of what the world may face during the COVID pandemic.-->
                 Scroll down for more detailed information on Korea's journey.
             </section>
             <section class="step">
                 We can see notable impacts of world events and government initiatives in Korea's
-                inbound tourist arrivals. Explore the key events and government initiatives on 
+                inbound tourist arrivals. Explore the key events and government initiatives on
                 the chart on the right; hover over any point to see the number of international visitors
-                that year, and click on the red dots to walk through the full story of
-                Korea's rise as a prime tourist destination, and the events and government 
-                policies that underlie the data. Click once on a red dot to show the detailed story, and 
-                click again on any point to remove the text and continue exploring.
+                that year, along with notable events.
             </section>
             <section class="step">
-                <p>
+                Click on the red dots to walk through the full story of
+                Korea's rise as a prime tourist destination, and the events and government
+                policies that underlie the data.
+            </section>
+            <section class="step">
                 The United States of America is another top travel destination where tourism has
-                almost doubled to roughly 80 million visitors in 2018 as compared to the number 
-                of visitors in 1996. 
-                <br>
-                <br> The tourism pattern in USA over the past 25 years also tells a compelling story about the 
-                impact government investments and regulations can have on a country's tourism industry. 
-                <br>
-                <br>Click once on a red dot to show the detailed story, and 
-                click again on any point to remove the text and continue exploring.
+                almost doubled since 1996, to roughly 80 million visitors in 2018.
             </section>
             <section class="step">
-                Interact with the map by hovering over any country highlighted in blue.
+                The tourism pattern in USA over the past 25 years also tells a compelling story about the
+                impact government investments and regulations can have on a country's tourism industry.
             </section>
-        </div>
-        <div id='vis' class="w-75">
+            <section class="step">
+                Click once on a red dot to show the detailed story.
+            </section>
+            <section class="step">
+                Now that we've explore a couple of countries in detail, explore other countries by
+                clicking any country highlighted in blue to see the tourism changes from 1996 to 2018.
+            </section>
         </div>
     </div>
 </div>
 
-
+<script src="src/storyDetails.js"></script>
 <script src="src/scroller.js"></script>
+<script src="src/circleLegend.js"></script>
 <script src="src/main.js"></script>
 
 
