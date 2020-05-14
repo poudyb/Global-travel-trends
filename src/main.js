@@ -425,7 +425,7 @@ var scrollVis = function () {
             .attr("class", "story-tooltip")
             .style("visibility", "hidden")
             .style("position", "absolute")
-            .style("left", `${chartMargin.left + 50}px`)
+            .style("left", `${chartMargin.left + width * 0.07}px`)
             .style('top', `${chartMargin.top}px`)
             .style('width', (width * 0.6) + "px")
             .style("background", "#ffffff")
