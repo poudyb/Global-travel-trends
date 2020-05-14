@@ -77,7 +77,7 @@ var scrollVis = function () {
     var inboundPivot = null;
     var southKoreaData = null;
     var usaData = null;
-    var interactiveMapData = null;
+    var worldData = null;
     var inboundTourism = null;
     /**
      * chart
@@ -87,7 +87,7 @@ var scrollVis = function () {
      */
     var chart = function (selection) {
         selection.each(function (rawData) {
-            var worldData = rawData[0];
+            worldData = rawData[0];
             tourism = d3.rollup(
                 rawData[1],
                 d => d[0].inbound,
@@ -96,12 +96,9 @@ var scrollVis = function () {
             );
 
             southKoreaData = rawData[1].filter(d => d.country_code === "KOR");
-            console.log(southKoreaData);
 
             usaData = rawData[1].filter(d => d.country_code === "USA");
             inboundTourism = rawData[1];
-            interactiveMapData = rawData[0];
-
             inboundPivot = rawData[2];
 
             // create svg and give it a width and height
@@ -141,6 +138,26 @@ var scrollVis = function () {
         var path = d3.geoPath(projection);
         var countries = topojson.feature(worldData, worldData.objects.countries).features;
 
+        var interactiveLineChart = g.append('g')
+            .attr('class', 'interactive-line')
+            .attr('opacity', 0);
+
+        interactiveLineChart
+            .append("rect")
+            .attr('class', 'background');
+        interactiveLineChart
+            .append("text")
+            .attr('class', 'country-label');
+        interactiveLineChart
+            .append("path")
+            .attr('class', 'line');
+        interactiveLineChart
+            .append('g')
+            .attr('class', 'x-axis');
+        interactiveLineChart
+            .append('g')
+            .attr('class', 'y-axis');
+
         g.append('g')
             .attr('class', 'map geography')
             .attr('id', 'land')
@@ -149,8 +166,78 @@ var scrollVis = function () {
             .join('path')
             .attr("fill", "#bbbbbb")
             .attr("d", path)
-            .append('title')
-            .text(d => d.properties.name);
+            // .append('title')
+            // .text(d => d.properties.name)
+            .on("click", function (d) {
+                if (activeIndex === 10) {
+                    var chartMarginInt = {top: 30, left: 40, bottom: 30, right: 20};
+                    var widthInt = 350;
+                    var heightInt = 250;
+                    var countryData = inboundTourism.filter(data => data.country_id === d.id);
+
+
+                    var xAreaScaleInt = d3.scaleTime()
+                        .domain(d3.extent(countryData, d => d.year))
+                        .range([chartMarginInt.left, (widthInt - chartMarginInt.right)]);
+
+                    var yAreaScaleInt = d3.scaleLinear()
+                        .domain([0, 1.1 * d3.max(countryData, d => parseInt(d.inbound))])
+                        .range([(heightInt - chartMarginInt.bottom), chartMarginInt.top]);
+
+                    var line = d3.line()
+                        .x(d => xAreaScaleInt(parseInt(d.year)))
+                        .y(d => yAreaScaleInt(parseInt(d.inbound) || 0));
+
+                    var loc = d3.mouse(this);
+                    var xTranslate = Math.min(loc[0], width - widthInt);
+                    var yTranslate = Math.min(loc[1], height - heightInt);
+
+                    interactiveLineChart
+                        .attr('opacity', 1)
+                        .attr('transform', `translate(${xTranslate},${yTranslate})`)
+                        .raise();
+
+                    interactiveLineChart.select('.background')
+                        .attr('width', widthInt)
+                        .attr('height', heightInt)
+                        .attr('fill', '#eeeeee')
+                        .attr('stroke', '#444444')
+                        .attr('opacity', 0.9)
+                        .attr('rx', '3px');
+
+                    interactiveLineChart.select('.country-label')
+                        .attr('transform', `translate(10, 20)`)
+                        .attr('font-size', '13px')
+                        .attr('font-weight', 'bold')
+                        .text(`${d.properties.name} Inbound Visitors`);
+
+                    interactiveLineChart.select('path')
+                        .data([countryData])
+                        .style('stroke', "#253494")
+                        .style("fill", "none")
+                        .attr("d", line);
+
+                    // Add the X Axis
+                    interactiveLineChart.select('.x-axis')
+                        .attr("transform", `translate(0,${heightInt - chartMarginInt.bottom})`)
+                        .call(d3.axisBottom(xAreaScaleInt).tickFormat(d3.format("d")))
+                        .selectAll("text")
+                        .style("text-anchor", "end");
+
+                    // Add the Y Axis
+                    interactiveLineChart.select('.y-axis')
+                        .attr('transform', `translate(${chartMarginInt.left}, 0)`)
+                        .call(d3.axisLeft(yAreaScaleInt).tickFormat(d3.format(".2s")));
+
+                    interactiveLineChart.selectAll("circle")
+                        .data(countryData)
+                        .join("circle") // Uses the enter().append() method
+                        .attr("cx", d => xAreaScaleInt(parseInt(d.year)))
+                        .attr("cy", d => yAreaScaleInt(parseInt(d.inbound) || 0))
+                        .attr("r", 2.5)
+                        .style("fill", "#253494");
+                }
+            });
 
         // g.append("path")
         //     .datum({type: "Sphere"})
@@ -385,13 +472,11 @@ var scrollVis = function () {
                 var selectedYr = d.year;
                 var dataToDisplay = sKoreaDetail[d.year];
 
-                console.log('event y is', d3.event.pageY);
-                console.log('height is', height);
                 if (sKoreaYears.indexOf(d.year) >= 0) {
                     storyText.html("<b><u>"
-                            + "Korea's Tourism Story: " + selectedYr + "</b></u>"
-                            + "<br />" + dataToDisplay
-                        ); // show the long text for that year
+                        + "Korea's Tourism Story: " + selectedYr + "</b></u>"
+                        + "<br />" + dataToDisplay
+                    ); // show the long text for that year
                     storyText
                         .transition()
                         .duration(textDuration)
@@ -403,28 +488,6 @@ var scrollVis = function () {
                         .style("visibility", "hidden");
                 }
             });
-
-        /* aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa */
-        // southKoreaData.forEach(d => {
-        //     if (sKoreaYears.indexOf(d.year) >= 0) {
-        //         sKoreaShort[d.year] = sKoreaShort[d.year];
-        //     } else {
-        //         sKoreaShort[d.year] = d.year;
-        //     }
-        // });
-
-        // var x = d3.scaleTime().range([chartMargin.left, (newChartWidth - chartMargin.right)]);
-        // var y = d3.scaleLinear().range([(height - chartMargin.bottom), chartMargin.top]);
-
-
-        // Scale the range of the data
-        // x.domain(d3.extent(southKoreaData, d => d.year));
-        // max_visitors = d3.max(southKoreaData, d => d.inbound);
-        // y.domain([0, 2e7]); // round up to nearest million for a clean y-axis
-
-        // Add variable to determine if data point clicked or not (so tooltip stays until second click)
-        // var clickFlag = false;
-
 
         g.append('g')
             .attr('class', 'usa')
@@ -467,8 +530,6 @@ var scrollVis = function () {
                 var selectedYr = d.year;
                 var dataToDisplay = usaDetail[d.year];
 
-                console.log('event y is', d3.event.pageY);
-                console.log('height is', height);
                 if (usaYears.indexOf(d.year) >= 0) {
                     storyText.html("<b><u>"
                         + "USA's Tourism Story: " + selectedYr + "</b></u>"
@@ -488,19 +549,24 @@ var scrollVis = function () {
 
         var sKoreaCircles = g.selectAll('.south-korea').selectAll('circle');
         var usaCircles = g.selectAll('.usa').selectAll('circle');
-        g.on("click", function() {
-            if (!sKoreaCircles.nodes().includes(d3.event.target)
-                && !usaCircles.nodes().includes(d3.event.target)
-            ){
-                storyText
-                    .transition()
-                    .duration(textDuration)
-                    .style("visibility", "hidden");
+        var countryPaths = g.selectAll('#land').selectAll('path');
+        g.on("click", function () {
+            if (activeIndex == 10) {
+                if (!countryPaths.nodes().includes(d3.event.target)) {
+                    interactiveLineChart
+                        .attr('opacity', 0)
+                }
+            } else {
+                if (!sKoreaCircles.nodes().includes(d3.event.target)
+                    && !usaCircles.nodes().includes(d3.event.target)
+                ) {
+                    storyText
+                        .transition()
+                        .duration(textDuration)
+                        .style("visibility", "hidden");
+                }
             }
         });
-
-        g.append('g')
-            .attr('class', 'interactiveMap')
     };
 
     /**
@@ -694,9 +760,6 @@ var scrollVis = function () {
             .attr('fill', '#2c7fb8')
             .attr('d', area);
 
-        console.log("axis", g.select('.area-yaxis'));
-        console.log(g.select('.area-yaxis').select(".tick:last-of-type text"));
-
         g.select('.area-yaxis')
             .transition("axis")
             .duration(1200)
@@ -759,7 +822,35 @@ var scrollVis = function () {
     }
 
     function southKoreaClick() {
-        updateSouthKorea(1)
+        g.selectAll('.south-korea')
+            .transition()
+            .duration(600)
+            .attr('opacity', 1);
+
+        d3.selectAll('div.story-tooltip')
+            .transition()
+            .duration(600)
+            .style('opacity', 1);
+
+        updateSouthKorea(1);
+
+        var newArea = d3.area()
+            .x(d => xAreaScale(parseInt(d.data.year)))
+            .y0(yAreaScale(0))
+            .y1((d, i, n) => yAreaScaleKorea((n.key === 'Korea, Rep.') ? d[1] - d[0] : 0));
+
+        g.select('.area-yaxis')
+            .transition("axis")
+            .duration(1200)
+            .attr('transform', `translate(${chartMargin.left}, 0)`)
+            .call(d3.axisLeft(yAreaScaleKorea).tickFormat(d3.format(".2s")));
+
+        g.selectAll('.area-lines')
+            .selectAll('path')
+            .transition("area")
+            .duration(1200)
+            .attr('fill', '#888')
+            .attr('d', newArea);
     }
 
     /**
@@ -817,7 +908,8 @@ var scrollVis = function () {
         d3.selectAll('div.story-tooltip')
             .transition()
             .duration(600)
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .style('visibility', 'hidden');
     }
 
     function usaClick() {
@@ -827,158 +919,56 @@ var scrollVis = function () {
             .transition()
             .duration(600)
             .attr('opacity', 1);
-    }
 
-    function showInteractiveMap() {
-        g.selectAll('.area-chart,.map,.south-korea,.usaData, rect')
+        g.selectAll('.usa')
+            .transition()
+            .duration(600)
+            .attr('opacity', 1);
+
+        d3.selectAll('div.story-tooltip')
+            .transition()
+            .duration(600)
+            .style('opacity', 1);
+
+        g.selectAll('.map.geography').lower();
+        g.selectAll('.map')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0.2);
+        g.select('#land').selectAll('path')
+            .transition()
+            .duration(600)
+            .attr('fill', "#bbbbbb");
+
+        g.selectAll('.interactive-line')
             .transition()
             .duration(600)
             .attr('opacity', 0);
-        svg.selectAll("rect").remove();
+    }
 
-        var svgGroup = g.selectAll('.interactiveMap');
+    function showInteractiveMap() {
+        console.log(activeIndex);
+        g.selectAll('.area-chart,.south-korea,.usa,.map.marks')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0);
 
-        var newChartWidth = width * 0.5;
-        var newChartHeight = height * 0.5;
+        d3.selectAll('div.story-tooltip')
+            .transition()
+            .duration(600)
+            .style('opacity', 0);
 
-        countriesWithData = []
+        var countriesWithData = d3.set(inboundTourism.map(d => d.country_id)).values();
+        g.selectAll('.map.geography').transition()
+            .duration(600)
+            .attr('opacity', 1);
+        g.select('#land').raise();
+        g.selectAll('#borders').raise();
 
-        inboundTourism.forEach(function (d) {
-            if (countriesWithData.indexOf(d.country_id) == -1) {
-                countriesWithData.push(d.country_id)
-            }
-        })
-        console.log("the countries are", countriesWithData);
-
-        projection = d3.geoNaturalEarth1().scale(200);
-
-        var path = d3.geoPath(projection);
-
-        var path = d3.geoPath(projection);
-
-        var countries = topojson.feature(interactiveMapData, interactiveMapData.objects.countries).features;
-
-        // define the tooltip
-        var tool_tip = d3.tip()
-            .attr("class", "d3-tip")
-            .style("left", (400 + newChartWidth) + "px")
-            // include the div
-            .html(
-                "<div id='tipDiv'></div>"
-            );
-
-        svgGroup.call(tool_tip);
-
-        svgGroup.append('g')
-            .attr('class', 'map geography')
-            .attr('id', 'land')
-            .selectAll('path')
-            .data(countries)
-            .join('path')
-            .attr("fill", function (d) {
-
-                if (countriesWithData.indexOf(d.id) >= 0) {
-                    return "rgb(33,113,181)";
-                } else {
-                    return "gray";
-                }
-            })
-            .on("mouseover", function (d) {
-                // get the name of the country
-                g.selectAll('.interactiveMap')
-                    .attr('opacity', 0.3);
-                current_country = d.id
-                // show the tooltip
-                tool_tip.show();
-
-                var tipSVG = d3.select("#tipDiv")
-                    .append("svg")
-                    .attr("width", newChartWidth)
-                    .attr("height", newChartHeight);
-                //.style("left", (400 + newChartWidth) + "px");
-
-                var parseDate = d3.timeParse("%Y");
-
-                var selectedCountryInbound = inboundTourism.filter(function (d) {
-                    return d.country_id === current_country;
-                });
-
-                selectedCountryInbound.forEach(function (d) {
-                    d.year = d.year;
-                    d.inbound = +d.inbound || 0
-                    d.inbound = parseInt(d.inbound);
-                });
-
-                var x = d3.scaleTime().range([0.5 * chartMargin.left, (newChartWidth - chartMargin.right)]);
-                var y = d3.scaleLinear().range([0.5 * (height - chartMargin.bottom), 0.5 * chartMargin.top]);
-
-                var line = d3.line()
-                    .x(d => x(d.year))
-                    .y(d => y(d.inbound))
-                    .curve(d3.curveNatural);
-
-                // Scale the range of the data
-                x.domain(d3.extent(selectedCountryInbound, d => d.year));
-                max_visitors = d3.max(selectedCountryInbound, d => d.inbound);
-                y.domain([0, Math.ceil(max_visitors / 1000000) * 1000000]); // round up to nearest million for a clean y-axis
-
-                // Add the line
-                tipSVG.append("path")
-                    .data([selectedCountryInbound])
-                    .style('stroke', "blue")
-                    .style("fill", "none")
-                    .attr("d", line);
-
-                // Appends a circle for each datapoint
-                tipSVG.selectAll(".dot")
-                    .data(selectedCountryInbound)
-                    .enter().append("circle") // Uses the enter().append() method
-                    .attr("class", "dot") // Assign a class for styling
-                    .attr("cx", function (d) {
-                        return x(d.year)
-                    })
-                    .attr("cy", function (d) {
-                        return y(d.inbound)
-                    })
-                    .attr("r", 2.5)
-                    .style("fill", "blue");
-
-                // Add the X Axis
-                tipSVG.append("g")
-                    .attr("class", "axis")
-                    .attr("transform", `translate(0,${0.5 * height - 0.5 * (chartMargin.bottom)})`)
-                    .call(d3.axisBottom(x).tickFormat(d3.format("d")))
-                    .selectAll("text")
-                    .style("text-anchor", "end")
-                    .attr("dx", "-.4em")
-                    .attr("dy", ".15em");
-
-                // Add the Y Axis
-                tipSVG.append("g")
-                    .attr("class", "axis")
-                    .attr('transform', `translate(${0.5 * chartMargin.left}, 0)`)
-                    .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
-
-            })
-            .on('mouseout', function (d) {
-                //g.selectAll('.interactiveMap').attr('opacity', 1);
-                tool_tip.hide();
-            })
-            .attr("d", path)
-            .append('title')
-            .text(d => d.properties.name);
-
-        svgGroup.append('g')
-            .attr('class', 'map geography')
-            .attr('id', 'borders')
-            .append("path")
-            .datum(topojson.mesh(interactiveMapData, interactiveMapData.objects.countries, (a, b) => a !== b))
-            .attr("fill", "none")
-            .attr("stroke", "white")
-            .style('stroke-width', 1.5)
-            .attr("stroke-linejoin", "round")
-            .attr("d", path);
-
+        g.select('#land').selectAll('path')
+            .transition()
+            .duration(600)
+            .attr('fill', d => countriesWithData.indexOf(d.id) >= 0 ? "#2c7fb8" : "#bbbbbb")
     }
 
     /**
@@ -1018,6 +1008,8 @@ var scrollVis = function () {
 
         g.selectAll('.south-korea')
             .selectAll("circle")
+            .transition()
+            .duration(10)
             .attr("opacity", d => d.year <= scrollScale(progress) ? 1 : 0);
     }
 
@@ -1039,6 +1031,8 @@ var scrollVis = function () {
 
         g.selectAll('.usa')
             .selectAll("circle")
+            .transition()
+            .duration(10)
             .attr("opacity", d => d.year <= scrollScale(progress) ? 1 : 0);
     }
 
